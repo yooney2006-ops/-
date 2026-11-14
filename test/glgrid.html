@@ -1,0 +1,11 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+:root{--fig-muscle:#9c9fa6;--fig-deep:#222838;--fig-hair:#151a26;--fig-plate:#3f434c;--fig-tendon:#222838;--fig-head:#283042;--fig-skin:#c9ced8;--fig-prim:#e2553f;--fig-sec:#f0a684;--fig-metal:#8a909c;--fig-pad:#3a3f4b;--fig-frame:#5b6170;--fig-floor:#dfe3ea;--fig-bg:#fff}
+body{margin:0;font:12px sans-serif;background:#fff;width:1500px;display:flex;flex-wrap:wrap;gap:4px}
+.c{width:244px}canvas{width:244px;height:244px;border:1px solid #ddd;display:block}</style></head><body>
+<script src="../src/exdata.js"></script><script src="../src/fig.js"></script><script src="../src/figgl.js"></script>
+<script>
+const q=JSON.parse(decodeURIComponent(location.hash.slice(1)));
+const ids=q.ids, frames=q.s||[0,1];
+for(const id of ids){const ex=EX.find(e=>e.id===id);for(const s of frames){const d=document.createElement('div');d.className='c';d.textContent=id+' s='+s;const c=document.createElement('canvas');d.appendChild(c);document.body.appendChild(d);
+ const v=FIG.viewer(c,ex,{autoplay:false}); if(q.yaw!=null)v.setView(q.yaw,q.pitch??10); v.frameAt(s); v.stop(); if(!v.isGL()) d.textContent+=' (2D)';}}
+</script></body></html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>
+<canvas id="c" style="width:128px;height:128px"></canvas>
+<script src="../src/exdata.js"></script><script src="../src/fig.js"></script><script src="../src/figgl.js"></script>
+<script>
+window.run=function(ids){
+ const c=document.getElementById('c');const G=FIGGL.create(c);const gl=G.gl;const W=150,H=150;const px=new Uint8Array(W*H*4);
+ const out={};
+ for(const id of ids){const ex=EX.find(e=>e.id===id);const rig=FIG.makeRig(ex.anim);const JA=rig.at(0);
+  const musc={};ex.prim.forEach(m=>musc[m]=1);ex.sec.forEach(m=>{if(!musc[m])musc[m]=2});
+  const poses=rig.cycle?[0,.5]:[0,1];const sc=poses.map(s=>{const J=rig.at(s);return FIG.scene(J,rig.P.props(J,{JA}),musc,ex.uni);});
+  let best=null;const def=rig.P.cam;
+  for(let pitch of [-8,10,28]) for(let yaw=0;yaw<360;yaw+=30){
+   let prim=0,body=0,minPrim=1e9;
+   for(const items of sc){G.draw(items,{yaw,pitch,target:def.target,dist:4.2,span:(def.span||2.5)*1.02},{floor:[200,200,200]},W,H,1,true);gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+     let p=0,b=0;for(let i=0;i<px.length;i+=4){if(px[i+3]<10)continue;const r=px[i],g=px[i+1],bl=px[i+2];if(r>200&&g<60&&bl<60)p+=1;else if(r>200&&bl>200&&g<60)p+=.4;else if(g>200)b++;}
+     prim+=p;body+=b;minPrim=Math.min(minPrim,p);}
+   const dy=Math.cos((yaw-def.yaw)*Math.PI/180);
+   const score=(prim/sc.length)*(1+.06*dy)+0.6*minPrim+0.08*(body/sc.length)-(pitch<0?0.08*(prim/sc.length):0)-(pitch>30?0.04*(prim/sc.length):0);
+   if(!best||score>best.score)best={yaw,pitch,score,prim:prim/sc.length,body:body/sc.length};}
+  out[id]=[best.yaw,best.pitch,Math.round(best.prim),Math.round(best.body)];}
+ return out;};
+</script></body></html>

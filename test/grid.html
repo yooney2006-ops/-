@@ -1,0 +1,12 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+:root{--fig-muscle:#e4e5e8;--fig-deep:#c9ccd2;--fig-hair:#4b4f58;--fig-tendon:#dcdee2;--fig-head:#e4e5e8;--fig-skin:#c9ced8;--fig-prim:#e4472b;--fig-sec:#f3a57c;--fig-metal:#8a909c;--fig-pad:#3a3f4b;--fig-frame:#5b6170;--fig-floor:#dfe3ea;--fig-bg:#fff}
+body{margin:0;font:12px sans-serif;display:flex;flex-wrap:wrap;gap:4px;background:#fff;width:1500px}
+.c{width:240px}canvas{width:240px;height:240px;border:1px solid #ddd;display:block}</style></head><body>
+<script src="../src/fig.js"></script>
+<script>
+const list=JSON.parse(decodeURIComponent(location.hash.slice(1)));
+for(const [name,anim,prim,yaw] of list){for(const s of (anim.p==='cardio'?[0,.25,.5]:[0,1])){const d=document.createElement('div');d.className='c';d.textContent=name+' s='+s;const c=document.createElement('canvas');d.appendChild(c);document.body.appendChild(d);
+ const rig=FIG.makeRig(anim);const JA=rig.at(0);const J=rig.at(s);const musc={};(prim||[]).forEach(m=>musc[m]=1);
+ c.width=240;c.height=240;const ctx=c.getContext('2d');const view={dist:4.2,span:2.5,...rig.P.cam};if(yaw!=null)view.yaw=yaw;
+ try{FIG.draw(ctx,240,240,FIG.scene(J,rig.P.props(J,{JA}),musc),view,FIG.palette(c));}catch(e){d.textContent+=' ERR '+e.message;}}}
+</script></body></html>
