@@ -97,6 +97,7 @@ function place(J,an,p){
 
 /* 패턴 인스턴스: 포즈 계산기 */
 /* ---------- 물리 보정 (발 고정·균형·바닥 접지) ---------- */
+const MIDFOOT=.056; // 발목에서 발 중앙(뒤꿈치~발끝의 가운데)까지 앞쪽 거리
 const ANK=.085, STANDA=new Set(['feet','toes','ankleL','floor']);
 function rotX(v,pv,th){const c=Math.cos(th),sn=Math.sin(th);const y=v[1]-pv[1],z=v[2]-pv[2];return [v[0],pv[1]+y*c-z*sn,pv[2]+y*sn+z*c];}
 function rotJ(J,pv,th){ const RX=rx(th/R);
@@ -145,6 +146,8 @@ function makeRig(anim,ex){
   const barEq=/바벨|EZ|스미스/.test(eq);
   const load=P.load!=null?P.load:/바벨|EZ바/.test(eq)?.55:/덤벨|케틀벨/.test(eq)?.22:0;
   const balance=standing&&ex&&(ex.cat==='프리웨이트'||ex.cat==='맨몸')&&!P.at&&P.balance!==false;
+  // 바가 발 중앙 위를 지나야 하는 종목: 서서 하는 프리 바벨 운동 (패턴이 barMid:false로 끌 수 있음)
+  const barMid=balance&&/바벨/.test(eq)&&P.barMid!==false&&['squat','hinge','ohp','row'].includes(anim.p);
   let plantT=null;
   function base(s){
     let p,loc;
@@ -159,17 +162,22 @@ function makeRig(anim,ex){
     J.p=p; return J;
   }
   const tgtOf=(J,k)=>{ if(!(P.free||[]).includes(k)) return plantT[k]; const a=J['an'+k]; return [a[0],Math.max(ANK,a[1]),a[2]]; };
+  function reachFix(J){ let d=0; for(const k of ['L','R']){ const h=J['hip'+k],t=plantT[k]; if((P.free||[]).includes(k)) continue; const dx=Math.hypot(h[0]-t[0],h[2]-t[2]),mx=(L.th+L.sh)*.995; if(dx<mx){ const need=t[1]+Math.sqrt(mx*mx-dx*dx); if(h[1]>need) d=Math.max(d,h[1]-need);} }
+    if(d>0){ for(const kk in J){const v=J[kk]; if(Array.isArray(v)&&v.length===3&&typeof v[0]==='number'&&!/^(heel|toe|fd)/.test(kk)) J[kk]=[v[0],v[1]-d,v[2]];} } }
   function at(s){
     const J=base(s);
     if(P.at||P.noPhys||P.solveRp) return J;
     if(standing){
       if(!plantT){ const J0=base(0); const ky=P.keepY||[]; plantT={L:[J0.anL[0],ky.includes('L')?Math.max(ANK,J0.anL[1]):ANK,J0.anL[2]],R:[J0.anR[0],ky.includes('R')?Math.max(ANK,J0.anR[1]):ANK,J0.anR[2]]}; if(P.plantFix) P.plantFix(plantT); }
       // 다리 길이로 닿을 수 있게 골반 높이 보정 (넓은 스탠스 등)
-      { let d=0; for(const k of ['L','R']){ const h=J['hip'+k],t=plantT[k]; if((P.free||[]).includes(k)) continue; const dx=Math.hypot(h[0]-t[0],h[2]-t[2]),mx=(L.th+L.sh)*.995; if(dx<mx){ const need=t[1]+Math.sqrt(mx*mx-dx*dx); if(h[1]>need) d=Math.max(d,h[1]-need);} }
-        if(d>0){ for(const kk in J){const v=J[kk]; if(Array.isArray(v)&&v.length===3&&typeof v[0]==='number'&&!/^(heel|toe|fd)/.test(kk)) J[kk]=[v[0],v[1]-d,v[2]];} } }
+      reachFix(J);
       for(let pass=0;pass<2;pass++){
         ['L','R'].forEach(k=>legIK(J,k,tgtOf(J,k)));
-        if(balance){ // 무게중심을 지지면(발) 중앙 위로: 발목 기준 회전
+        if(barMid){ // 프리 바벨 스탠딩: 바가 발 중앙(mid-foot) 수직선 위에 오도록 골반(상체 전체)을 앞뒤로 옮기고 다리는 IK로 다시 푼다
+          const tz=(plantT.L[2]+plantT.R[2])/2+MIDFOOT, dz=tz-(J.haL[2]+J.haR[2])/2;
+          for(const kk in J){const v=J[kk]; if(Array.isArray(v)&&v.length===3&&typeof v[0]==='number'&&!/^(heel|toe|fd|an)/.test(kk)) J[kk]=[v[0],v[1],v[2]+dz];}
+          reachFix(J);
+        } else if(balance){ // 무게중심을 지지면(발) 중앙 위로: 발목 기준 회전
           const fc=k=>plantT[k][2]+.055, wL=typeof P.supportW==='function'?P.supportW(s):P.supportW?P.supportW[0]:.5, tz=fc('L')*wL+fc('R')*(1-wL);
           const pv=mid(plantT.L,plantT.R);
           let lo=-.5,hi=.5; for(let i=0;i<24;i++){const m=(lo+hi)/2; const Jc={...J}; rotJ(Jc,pv,m); const c=com(Jc,load); if(c[2]>tz) hi=m; else lo=m;}
@@ -182,6 +190,38 @@ function makeRig(anim,ex){
       ['L','R'].forEach(k=>{ const an=J['an'+k]; const below=Math.min(J['toe'+k][1],J['heel'+k][1],an[1]-ANK);
         if(below<-.005||P.feetFloor){ const t0=P.feetFloor?P.feetFloor(J,k):[an[0],ANK,an[2]+.04]; legIK(J,k,t0); footFix(J,k,true); }
         else if(J['toe'+k][1]<0||J['heel'+k][1]<0){ footFix(J,k,false); } });
+    }
+    if(barMid&&standing){
+      // 바는 발 중앙 수직선에 두고, 그 조건을 만족하는 골반 앞뒤 위치를 이분법으로 찾는다.
+      // 후보 위치마다 다리를 IK로 다시 풀고 바-몸 간섭(barClear)까지 적용한 뒤 바의 위치를 본다
+      // → 바가 정강이·허벅지를 스치듯 지나가는 위치에 몸이 놓인다.
+      const tz=(plantT.L[2]+plantT.R[2])/2+MIDFOOT;
+      const J0={}; for(const kk in J){const v=J[kk]; J0[kk]=Array.isArray(v)&&typeof v[0]==='number'?v.slice():v;}
+      const barZ=Q=>(Q.haL[2]+Q.haR[2])/2;
+      const tryAt=(x,h)=>{ const Q={}; for(const kk in J0){const v=J0[kk]; Q[kk]=Array.isArray(v)&&v.length===3&&typeof v[0]==='number'?(/^(heel|toe|fd|an)/.test(kk)?v.slice():[v[0],v[1]+h,v[2]+x]):v;}
+        if(h>0&&TH[h]) lean(Q,TH[h]);
+        reachFix(Q); ['L','R'].forEach(k=>{ legIK(Q,k,tgtOf(Q,k)); footFix(Q,k,true); }); return Q; };
+      // 엉덩이를 높인 만큼 상체를 더 숙여(힙 힌지) 바의 높이는 그대로 유지한다. 팔은 어깨에서 수직으로 늘어뜨린 채.
+      const lean=(Q,th)=>{ for(const kk of ['chest','spine','neck','head','shL','shR']) Q[kk]=rotX(Q[kk],Q.pelvis,th); Q.Rt=mm(rx(th/R),Q.Rt);
+        ['L','R'].forEach((k,i)=>{ Q['el'+k]=add(Q['sh'+k],arm0[i][0]); Q['ha'+k]=add(Q['sh'+k],arm0[i][1]); }); };
+      const arm0=['L','R'].map(k=>[sub(J0['el'+k],J0['sh'+k]),sub(J0['ha'+k],J0['sh'+k])]);
+      const TH={}; const leanFor=h=>{ if(h<=0||TH[h]!=null) return; const y0=J0.haL[1]; const yAt=th=>{ TH[h]=th; const y=tryAt(0,h).haL[1]; return y; };
+        const sg=yAt(.05)<yAt(-.05)?1:-1; let lo=0,hi=1.2; for(let i=0;i<16;i++){ const m=(lo+hi)/2; if(yAt(sg*m)>y0) lo=m; else hi=m; } TH[h]=sg*(lo+hi)/2; };
+      const canClear=barEq&&P.barFix!==false;
+      const cleared=Q=>{ const C={}; for(const kk in Q){const v=Q[kk]; C[kk]=Array.isArray(v)&&typeof v[0]==='number'?v.slice():v;} if(canClear) barClear(C); return C; };
+      // clear=true면 바-몸 간섭으로 손이 밀린 뒤의 바 위치를 기준으로 푼다 (락아웃에서 바가 허벅지 앞에 얹히는 경우)
+      const solveX=(h,clear,c0,w)=>{ let lo=c0-w,hi=c0+w,m=c0; for(let i=0;i<18;i++){ m=(lo+hi)/2; const Q=tryAt(m,h); if(barZ(clear?cleared(Q):Q)>tz) hi=m; else lo=m; } return (lo+hi)/2; };
+      let Q=null;
+      if(anim.p==='hinge'&&canClear){
+        // 바가 무릎·정강이에 깊이 걸리면(무릎이 바의 수직 경로를 막으면) 엉덩이를 조금씩 높여 무릎을 뒤로 뺀다
+        let h=0,x=0; for(;h<=.2;h+=.01){ leanFor(h); x=solveX(h,false,-.1,.6); const Q0=tryAt(x,h); if(Math.abs(barZ(cleared(Q0))-barZ(Q0))<.025) break; }
+        h=Math.min(h,.2); leanFor(h);
+        const x2=solveX(h,true,x,.2); const Q2=cleared(tryAt(x2,h));
+        Q=Math.abs(barZ(Q2)-tz)<.01?Q2:cleared(tryAt(x,h));
+      } else { const x=solveX(0,false,-.1,.6); const Q2=canClear?cleared(tryAt(solveX(0,true,x,.2),0)):null;
+        Q=Q2&&Math.abs(barZ(Q2)-tz)<.01?Q2:cleared(tryAt(x,0)); }
+      for(const kk in Q) J[kk]=Q[kk];
+      return J;
     }
     if(barEq&&P.barFix!==false) barClear(J);
     return J;
