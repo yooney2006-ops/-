@@ -1,0 +1,20 @@
+import "./styles/app.css";
+import { initState } from "./app/state";
+import { render } from "./app/views";
+import "./app/actions"; // 클릭·입력 이벤트 연결
+
+await initState();
+render();
+
+// 콘솔·자동 검사에서 상태를 들여다보기 위한 손잡이 (예: gymlog.S.days)
+import * as state from "./app/state";
+import * as training from "./app/training";
+import * as util from "./app/util";
+import * as views from "./app/views";
+import { A } from "./app/actions";
+import { EXMAP } from "./app/catalog";
+(window as any).gymlog = {
+  get S() { return state.S; },
+  ui: state.ui, A, EXMAP, ...training, ...util, ...views,
+  defaultState: state.defaultState, markDirty: state.markDirty, flush: state.flush,
+};

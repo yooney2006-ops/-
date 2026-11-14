@@ -1,8 +1,0 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-:root{--fig-muscle:#e6dccb;--fig-deep:#d8ccb8;--fig-hair:#c9bca6;--fig-tendon:#e6dccb;--fig-head:#e9e0d0;--fig-skin:#e9e0d0;--fig-shorts:#2a2e36;--fig-prim:#d23f2a;--fig-sec:#ef9c76;--fig-metal:#8a909c;--fig-pad:#3a3f4b;--fig-frame:#5b6170;--fig-floor:#e6e9ee;--fig-plate:#3f434c;--fig-bg:#fff}
-body{margin:0;background:#fff;display:flex;gap:4px;width:1500px;flex-wrap:wrap;font:12px sans-serif}.c{width:370px}canvas{width:370px;height:560px;border:1px solid #ddd}</style></head><body>
-<script src="../src/exdata.js"></script><script src="../src/fig.js"></script><script src="../src/figgl.js"></script>
-<script>const Q=JSON.parse(decodeURIComponent(location.hash.slice(1)));const q=Q.list||Q;q.ty=Q.ty;
-for(const [id,s,yaw,pitch,span] of q){const ex=EX.find(e=>e.id===id);const d=document.createElement('div');d.className='c';d.textContent=id+' '+yaw;const c=document.createElement('canvas');d.appendChild(c);document.body.appendChild(d);
- const v=FIG.viewer(c,ex,{autoplay:false});v.setView(yaw,pitch);if(span)v.setSpan(span,[0,q.ty??1.05,0]);v.frameAt(s);v.stop();}
-</script></body></html>

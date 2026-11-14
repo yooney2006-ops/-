@@ -1,39 +1,81 @@
 # 짐로그 (GymLog)
 
-Claude 아티팩트로 만든 운동·식단 기록 앱의 원본 소스입니다. Claude Code에서 이어서 개발하기 위한 출발점입니다.
+한국어 운동·식단 기록 앱. 사용자 한 명(나)을 위한 앱이라 회원가입·서버 DB 없이 기록은 기기 안(IndexedDB)에 저장된다.
+claude.ai 아티팩트로 만들던 것을 Vite + TypeScript 프로젝트로 옮겼다. 아티팩트 원본은 첫 커밋(`0254b9f`)에 그대로 있다.
+
+## 실행
+
+```bash
+npm install
+npm run dev          # 개발 서버 (http://localhost:5173)
+npm run build        # 타입 검사 + dist/ 빌드 (PWA 포함)
+npm run preview      # 빌드 결과 미리보기
+```
+
+## 검사
+
+```bash
+npm test                       # 물리·바벨 관통 회귀 검사, 운동 DB, 저장·백업 (vitest)
+npm run build && npm run test:e2e   # 실제 브라우저로 탭·3D·저장·백업·오프라인 확인
+npm run render -- '{"ids":["bench"],"s":[[0,90],[0.5,90],[1,90],[0],[1]]}' out.png   # 동작 렌더 → 눈으로 확인
+node tests/physics/physcheck.mjs [id,id]   # 물리 검사 상세 출력 (알려진 오탐 4건: goblet, rower, bulgarian, stepup)
+node tests/physics/barcheck.mjs            # 바벨 관통 상세 출력 (0건이어야 함)
+```
 
 ## 구조
 
 ```
+index.html              화면 뼈대
 src/
-  app.html    UI 전체 (식단·운동·플랜·가이드 탭, 플랜 피드백, 회복도, 근육 맵, PR, 캘린더)
-  exdata.js   운동 DB (기본 111개 + 해머 스트렝스·노틸러스 111개), 근거 기반 수치, 카메라 각도(CAMS)
-  fig.js      3D 동작 엔진: 관절 FK/IK, 동작 패턴 라이브러리, 물리 보정(발 접지·무게중심·바벨 관통 방지), 근육 장면 구성
-  figgl.js    WebGL 렌더러 (깊이 버퍼, 회전체 근육, 조명)
-build.py      src/를 하나로 합쳐 index.html 생성 (exdata.js → /*@@EXDATA@@*/, fig.js+figgl.js → /*@@FIG@@*/)
-test/
-  physcheck.js  물리 타당성 검사 (바닥 관통, 관절 한계, 무릎 방향, 무게중심)   node physcheck.js [id,id]
-  barcheck.js   바벨-몸 관통 검사                                               node barcheck.js
-  revshot.js    운동별 프레임 렌더링 (playwright 필요)
-  app2.js/app4.js 브라우저 동작 테스트
+  main.ts               시작점
+  types.ts              저장 데이터 타입
+  styles/app.css
+  app/                  화면 (아티팩트 원본에서 옮긴 코드)
+    state.ts            상태 S·ui, markDirty → IndexedDB 저장
+    views.ts            네 탭 렌더링 (식단·운동·주간 플랜·운동 가이드)
+    sheets.ts           아래에서 올라오는 시트 (음식 추가, 운동 추가, 내 정보 등)
+    actions.ts          버튼·입력 처리 (data-act)
+    training.ts         회복도, 플랜 템플릿, 볼륨·플랜 피드백, PR
+    goals.ts            칼로리·단백질 목표 계산
+    catalog.ts util.ts timer.ts
+  data/
+    exercises.js        운동 222개, STRETCH/COMPOUND/EVIDENCE, 카메라 각도 CAMS, BRAND_MACHINES
+    foods.ts            내장 음식 DB
+  engine/
+    fig.js              3D 동작 엔진 (FK/IK, 동작 패턴, 물리 보정)
+    figgl.js            WebGL 렌더러
+  platform/             아티팩트 전용 기능을 대체한 부분
+    storage.ts          IndexedDB (문서 키: main, d-YYYY-MM-DD)
+    backup.ts           JSON 내보내기/가져오기
+    ai.ts               Claude 호출 클라이언트 (/api/ai로 요청만 보냄)
+server/ai.ts            Claude 프록시 함수 (API 키는 여기에만)
+tests/                  unit(vitest) · physics · render · e2e
 ```
 
-빌드: `python3 build.py` → `index.html`
+`src/app/*.ts`와 `data/foods.ts`는 원본을 기능 변경 없이 옮긴 코드라 아직 `// @ts-nocheck`다.
+새로 쓴 부분(`types.ts`, `state.ts`, `platform/`, `server/`)은 strict 타입 검사를 받는다.
 
-## 아티팩트 전용 기능 — 옮길 때 바꿔야 할 것
+## 데이터
 
-| 기능 | 아티팩트에서 | 독립 앱에서 대안 |
-|---|---|---|
-| 데이터 저장 | `claude.use("db")` — `data/users/<uid>/` 문서 (`main`, `d-YYYY-MM-DD`) | IndexedDB/localStorage(이미 폴백 있음), 기기 간 동기화가 필요하면 Supabase·Firebase |
-| 사용자 식별 | `claude.use("user")` | 로그인 없이 단일 사용자 또는 Supabase Auth |
-| 음식 사진·텍스트 분석 | `claude.use("sample")` (Claude 호출, 이미지 지원) | Anthropic API를 서버(또는 서버리스 함수)에서 호출 — API 키는 브라우저에 두지 말 것 |
+- 기록은 **이 기기의 브라우저 안**에만 있다. '내 정보·목표' → **데이터 백업**에서 JSON으로 내보내고 가져올 수 있다.
+- 가져오기는 현재 기록을 백업 내용으로 통째로 바꾼다(확인 창이 뜬다).
+- 가져오기는 아티팩트 시절 데이터 모양(`{main, days}` 또는 `{main, "d-날짜": …}`)도 읽는다.
+- 기기 간 동기화가 필요해지면 `platform/storage.ts`의 함수 네 개를 같은 모양으로 구현하면 된다.
 
-`src/app.html`의 `store` 객체(약 340–390행)와 `samplePromise`가 이 부분입니다. 여기만 어댑터로 감싸면 나머지는 그대로 동작합니다.
+## Claude 기능 (음식 텍스트·사진 분석, 플랜 추천·피드백, 운동 질문)
 
-## 추천 다음 단계
+브라우저에는 API 키를 두지 않는다. 앱은 `/api/ai`로 요청을 보내고, `server/ai.ts`가 Anthropic API를 호출한다.
 
-1. **Vite + TypeScript로 모듈화** — app.html을 탭별 모듈로 쪼개고, exdata를 JSON/TS로.
-2. **3D를 three.js + 리깅된 인체 모델(glTF)로 교체** — 현재는 도형으로 근육을 만든 절차적 모형이라 사실감에 한계가 있음. 리깅된 메시에 fig.js의 관절 각도/IK 결과를 그대로 본(bone)에 적용하고, 근육 부위별 머티리얼로 주동근·보조근을 칠하는 방식이 가장 큰 개선.
-3. **PWA** — 휴대폰 홈 화면 설치, 오프라인 기록.
-4. **음식 분석 API 프록시** — Cloudflare Workers/Vercel 함수 하나로 Anthropic API 호출.
-5. **테스트를 CI로** — physcheck·barcheck를 회귀 테스트로 고정.
+- **로컬**: `.env.example`을 `.env.local`로 복사해 `ANTHROPIC_API_KEY`를 넣으면 `npm run dev`에서 바로 동작한다.
+- **배포**: `handleAI(request, env)`는 웹 표준 `Request → Response` 함수다. 서버리스 플랫폼의 함수 파일에서 불러 쓰면 된다. 예 (Cloudflare Pages `functions/api/ai.ts`):
+  ```ts
+  import { handleAI } from "../../server/ai";
+  export const onRequestPost = ({ request, env }) => handleAI(request, env);
+  ```
+- 함수 주소가 앱과 다른 곳이면 빌드할 때 `VITE_AI_ENDPOINT`로 지정한다.
+- `GYMLOG_TOKEN`을 설정하면 앱의 '내 정보·목표'에서 같은 암호를 입력해야 호출된다. 공개 주소에 올릴 때는 꼭 설정할 것.
+- 함수가 없어도 앱의 나머지(기록, 플랜, 가이드, 3D)는 전부 동작하고, Claude 버튼만 안내 문구를 보여 준다.
+
+## PWA
+
+빌드하면 서비스 워커와 매니페스트가 함께 나온다. HTTPS 주소에 올린 뒤 휴대폰 브라우저에서 "홈 화면에 추가"하면 앱처럼 설치되고 오프라인에서도 기록할 수 있다.

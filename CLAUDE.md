@@ -25,14 +25,22 @@
 
 ## 3. 코드 구조
 
+Vite + TypeScript 프로젝트다. 자세한 구조와 명령은 README.md에 있다.
+
 ```
-src/app.html   UI 전체 (store 객체 = 저장 계층, 약 340–390행)
-src/exdata.js  운동 DB, STRETCH/COMPOUND/EVIDENCE, 카메라 각도 CAMS, BRAND_MACHINES
-src/fig.js     3D 동작 엔진
-src/figgl.js   WebGL 렌더러
-build.py       src → index.html 한 파일로 합침
-test/          physcheck.js, barcheck.js, revshot.js, app2.js, app4.js
+src/app/             화면. state.ts(상태·저장), views.ts(탭), sheets.ts(시트), actions.ts(버튼 처리), training.ts(회복·플랜·볼륨)
+src/data/exercises.js  운동 DB, STRETCH/COMPOUND/EVIDENCE, 카메라 각도 CAMS, BRAND_MACHINES
+src/data/foods.ts    음식 DB
+src/engine/fig.js    3D 동작 엔진
+src/engine/figgl.js  WebGL 렌더러
+src/platform/        storage.ts(IndexedDB), backup.ts(JSON 백업), ai.ts(Claude 호출 클라이언트)
+server/ai.ts         Claude 프록시 함수 (API 키는 서버에만)
+tests/               unit(vitest), physics(physcheck·barcheck), render(revshot), e2e(브라우저)
 ```
+
+- `src/app/*.ts`는 아티팩트 원본을 기능 변경 없이 옮긴 코드라 `// @ts-nocheck`다. 손대는 파일부터 타입을 붙여 나간다.
+- 화면 코드는 `S`를 직접 고친 뒤 `markDirty("main")` 또는 `markDirty(dayKey(날짜))`를 부른다. 이걸 빠뜨리면 저장되지 않는다.
+- 아티팩트 원본은 첫 커밋에 있다(`git show 0254b9f:index.html`). 기능이 빠졌는지 의심되면 원본과 비교한다.
 
 fig.js의 핵심:
 - 관절 FK + 두 뼈 IK(`ik2`, `armIK`, `legIK`). 동작 패턴 라이브러리(press, fly, ohp, vpull, row, squat, hinge, lunge 등)에서 운동마다 시작·끝 자세를 보간한다.
@@ -52,23 +60,21 @@ fig.js의 핵심:
 
 **검수 절차 (동작을 건드릴 때마다 반드시):**
 ```
-cd test && node physcheck.js        # 물리 검사 (알려진 오탐 4건: goblet, rower, bulgarian, stepup)
-node barcheck.js                    # 바벨 관통 0건이어야 함
-node revshot.js '{"ids":[...],"s":[[0,90],[0.5,90],[1,90],[0],[1]]}' out.png   # 렌더링해서 눈으로 확인
+npm test                              # 물리 검사(알려진 오탐 4건: goblet, rower, bulgarian, stepup 외 0건) + 바벨 관통 0건
+node tests/physics/physcheck.mjs [id,id]   # 물리 검사 상세
+npm run render -- '{"ids":[...],"s":[[0,90],[0.5,90],[1,90],[0],[1]]}' out.png   # 렌더링해서 눈으로 확인
 ```
 검사 통과만 믿지 말고 렌더 이미지를 직접 열어 본다. 한 운동을 고친 뒤 같은 패턴을 쓰는 다른 운동이 망가지지 않았는지도 확인한다(과거에 무게중심 보정을 넣다가 바벨 운동 전체가 어색해진 적이 있다).
 
 ## 5. 알려진 한계와 다음 과제 (우선순위 순)
 
-1. **인체 모형을 실제 3D 모델로 교체.** 지금은 도형을 조합한 절차적 모형이라 사실감에 한계가 있다. three.js + 뼈대가 들어 있는 인체 glTF 모델로 바꾸고, 근육 부위별로 색을 칠할 수 있게 한다. 라이선스가 허용되는 모델만 쓴다. fig.js의 관절 계산·IK·물리 보정 결과는 본(bone) 회전으로 변환해 재사용한다.
-2. **Vite + TypeScript로 모듈화.** app.html을 탭별 모듈로 나누고 운동 DB를 데이터 파일로 분리한다.
-3. **아티팩트 전용 기능 교체.**
-   - 저장: `claude.use("db")` → IndexedDB(기본). 문서 구조는 `main`, `d-YYYY-MM-DD` 그대로 유지. 기기 간 동기화는 나중에 필요하면 Supabase.
-   - 음식 분석: `claude.use("sample")` → 서버리스 함수에서 Anthropic API 호출. API 키를 브라우저 코드에 넣지 않는다.
-   - 기존 아티팩트 기록을 가져오는 JSON 가져오기/내보내기.
-4. **PWA.** 휴대폰 홈 화면 설치, 오프라인 기록. 나는 주로 휴대폰으로 쓴다.
-5. 운동별 카메라 각도(CAMS) 재계산 — 모형과 일부 동작이 바뀐 뒤 다시 돌리지 않았다.
-6. physcheck·barcheck를 자동 회귀 테스트로 만든다.
+끝난 것: Vite + TypeScript 이전, IndexedDB 저장, JSON 가져오기/내보내기, Claude 프록시 함수(코드만 — 배포는 아직), PWA, physcheck·barcheck 자동 회귀 테스트.
+
+1. **인체 모형을 실제 3D 모델로 교체.** 지금은 도형을 조합한 절차적 모형이라 사실감에 한계가 있다. three.js + 뼈대가 들어 있는 인체 glTF 모델로 바꾸고, 근육 부위별로 색을 칠할 수 있게 한다. 라이선스가 허용되는 모델만 쓴다. fig.js의 관절 계산·IK·물리 보정 결과는 본(bone) 회전으로 변환해 재사용한다. **계획을 먼저 보여 주고 승인받은 뒤 진행한다.**
+2. **배포.** 휴대폰에서 쓰려면 HTTPS 주소가 필요하다. 어디에 올릴지(정적 호스팅 + 서버리스 함수)와 API 키 발급은 내가 정한다.
+3. `src/app/*.ts`에 타입 붙이기(`@ts-nocheck` 제거), views.ts를 탭별 파일로 나누기.
+4. 운동별 카메라 각도(CAMS) 재계산 — 모형과 일부 동작이 바뀐 뒤 다시 돌리지 않았다.
+5. 기기 간 동기화가 필요해지면 Supabase.
 
 ## 6. 일하는 방식
 
@@ -78,10 +84,3 @@ node revshot.js '{"ids":[...],"s":[[0,90],[0.5,90],[1,90],[0],[1]]}' out.png   #
 - 보고에 코드 용어를 늘어놓지 말고, 무엇이 어떻게 달라졌는지 운동 이름과 화면 기준으로 말하라.
 - 자주 커밋하라. 큰 변경 전에는 동작하는 상태를 커밋해 둔다.
 - 내 이메일 등 개인정보를 외부 서비스에 보내지 마라.
-
-## 7. 첫 작업
-
-1. README.md와 src/를 읽고 `python3 build.py`로 빌드해 index.html이 뜨는지, test/의 검사가 도는지 확인한다.
-2. git 저장소를 만들고 현재 상태를 첫 커밋으로 남긴다.
-3. Vite + TypeScript 프로젝트로 옮기고 저장 계층을 IndexedDB 어댑터로 바꾼다(기능 누락 없이).
-4. 그다음 5번 목록의 1번(실제 인체 모델)에 대한 계획을 세워 나에게 보여 준 뒤 진행한다.
