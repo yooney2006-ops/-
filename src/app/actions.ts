@@ -3,8 +3,8 @@ import { EXMAP, PARTS, WD } from "./catalog";
 import { GOALS, calcTargets, sumMeals } from "./goals";
 import { NUTRI_SCHEMA, allFoods, closeSheet, drawExSheet, drawFoodSheet, exListHtml, exPreviewHtml, exSheet, foodPick, foodResults, foodSheet, getItems, normFood, openSheet, profileSheet, saveTarget, startPickViewer, tipsSheet } from "./sheets";
 import { S, dayKey, flush, markDirty, replaceState, ui } from "./state";
-import { startTimer, tick, timer } from "./timer";
-import { cloneItems, doneSets, e1rm, exInfo, exPart, exType, feedbackHtml, groupWeights, makeTemplate, mkItem, planCheckHtml, planFeedback, planStats, recovery } from "./training";
+import { startTimer, tick, timer, buzz } from "./timer";
+import { cloneItems, doneSets, e1rm, exInfo, exPart, exType, feedbackHtml, groupWeights, makeTemplate, mkItem, planCheckHtml, planFeedback, planStats, recovery, prevRecord } from "./training";
 import { addDays, day, esc, md, peekDay, r0, r1, toast, uid, wIdx, ymd } from "./util";
 import { MGROUP, bestE1rmBefore, defaultMeal, exDetail, guideCards, guideFilter, lastWeightDate, render } from "./views";
 import { EX } from "../data/exercises.js";
@@ -113,8 +113,12 @@ export const A={
   swap(el){ exSheet(el.dataset.target,+el.dataset.i); },
   delEx(el){ const items=getItems(el.dataset.target); items.splice(+el.dataset.i,1); saveTarget(el.dataset.target); render(); },
   moveEx(el){ const items=getItems(el.dataset.target); const i=+el.dataset.i; if(i<=0) return; [items[i-1],items[i]]=[items[i],items[i-1]]; saveTarget(el.dataset.target); render(); },
+  loadPrev(el){ const it=day().workout.items[+el.dataset.i]; const pr=prevRecord(it.name,ui.date); if(!pr) return;
+    let n=0; it.sets.forEach((s,k)=>{ const p=pr.sets[k]||pr.sets[pr.sets.length-1]; if(!s.done&&p){ s.w=p.w; s.r=p.r; n++; } });
+    markDirty(dayKey(ui.date)); render(); buzz(8); toast(n?"지난 기록을 불러왔어요":"이미 끝낸 세트는 그대로 뒀어요"); },
   toggleSet(el){ const it=day().workout.items[+el.dataset.i]; const s=it.sets[+el.dataset.k]; s.done=!s.done; if(s.done) s.t=Date.now(); else { delete s.t; delete s.pr; }
-    if(s.done&&exType(it)==="w"){ const prev=bestE1rmBefore(it.name,ui.date,s); const cur=e1rm(+s.w,+s.r); if(prev>0&&cur>prev+.01){ s.pr=true; toast(`신기록! ${it.name} 추정 1RM ${r1(cur)}kg (이전 ${r1(prev)}kg)`); } } markDirty(dayKey(ui.date)); render(); if(s.done&&exType(it)!=="t"){ const base=it.rest||exInfo(it)?.rest||90; startTimer(base+(String(s.rir)==="0"?30:0)); } },
+    ui.justDone=s.done?el.dataset.i+"-"+el.dataset.k:null; buzz(s.done?14:6); setTimeout(()=>{ui.justDone=null;},400);
+    if(s.done&&exType(it)==="w"){ const prev=bestE1rmBefore(it.name,ui.date,s); const cur=e1rm(+s.w,+s.r); if(prev>0&&cur>prev+.01){ s.pr=true; buzz([20,60,30]); toast(`신기록! ${it.name} 추정 1RM ${r1(cur)}kg (이전 ${r1(prev)}kg)`); } } markDirty(dayKey(ui.date)); render(); if(s.done&&exType(it)!=="t"){ const base=it.rest||exInfo(it)?.rest||90; startTimer(base+(String(s.rir)==="0"?30:0)); } },
   delSet(el){ const items=getItems(el.dataset.target); items[+el.dataset.i].sets.splice(+el.dataset.k,1); saveTarget(el.dataset.target); render(); },
   setCount(el){ const it=getItems(el.dataset.target)[+el.dataset.i]; if(+el.dataset.d>0){ const last=it.sets[it.sets.length-1]||{w:0,r:10}; it.sets.push({w:last.w,r:last.r,done:false}); } else { const k=it.sets.map(s=>s.done).lastIndexOf(false); if(it.sets.length>1) it.sets.splice(k>=0?k:it.sets.length-1,1); } saveTarget(el.dataset.target); render(); },
   bulk(el){ const it=getItems(el.dataset.target)[+el.dataset.i]; const f=el.dataset.f, d=+el.dataset.d; it.sets.forEach(s=>{ if(!s.done) s[f]=Math.max(0,r1((+s[f]||0)+d)); }); saveTarget(el.dataset.target); render(); },
@@ -207,7 +211,7 @@ ${planTxt}
     try{ await askText(`헬스 트레이너로서 다음 질문에 답하라. 한국어 존댓말, 마크다운 제목 없이 **굵게**만, 12줄 이내. 통증이 심하거나 지속되면 전문의 상담을 권하라.\n질문: ${q}`, t=>{ out.innerHTML=`<div class="ai-out" style="margin-top:10px">${md(t)}</div>`; }); }
     catch(e){ out.innerHTML=`<p class="small" style="color:var(--bad)">${esc(aiErr(e))}</p>`; }
   },
-  timerAdd(el){ timer.end+= +el.dataset.s*1000; tick(); },
+  timerAdd(el){ timer.end+= +el.dataset.s*1000; timer.total=Math.max(timer.total||0,(timer.end-Date.now())/1000); tick(); },
   timerStop(){ clearInterval(timer.iv); document.getElementById("timer").classList.remove("on"); }
 };
 export function readReq(){

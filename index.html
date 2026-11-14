@@ -34,17 +34,19 @@
     <nav class="tabs" role="tablist">
       <button role="tab" data-act="tab" data-tab="food">식단</button>
       <button role="tab" data-act="tab" data-tab="workout">운동</button>
-      <button role="tab" data-act="tab" data-tab="plan">주간 플랜</button>
-      <button role="tab" data-act="tab" data-tab="guide">운동 가이드</button>
+      <button role="tab" data-act="tab" data-tab="plan">플랜</button>
+      <button role="tab" data-act="tab" data-tab="guide">가이드</button>
+      <button role="tab" data-act="tab" data-tab="stats">분석</button>
     </nav>
   </header>
   <main id="view" class="stack"></main>
 </div>
 <div class="backdrop" id="backdrop" data-act="closeSheet"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
-<div class="timer" id="timer">
+<div class="timer" id="timer" role="timer" aria-label="휴식 타이머">
+  <i class="tbar" id="timerBar"></i>
   <span class="xs">휴식</span><span class="tt" id="timerT">1:30</span>
-  <button data-act="timerAdd" data-s="-15">−15</button><button data-act="timerAdd" data-s="30">+30</button><button data-act="timerStop">끄기</button>
+  <button data-act="timerAdd" data-s="-15" aria-label="15초 줄이기">−15</button><button data-act="timerAdd" data-s="15" aria-label="15초 늘리기">+15</button><button data-act="timerAdd" data-s="30" aria-label="30초 늘리기">+30</button><button data-act="timerStop" aria-label="타이머 끄기">✕</button>
 </div>
 <div class="toast" id="toast"></div>
 <script type="module" src="/src/main.ts"></script>

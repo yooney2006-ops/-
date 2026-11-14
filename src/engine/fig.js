@@ -861,7 +861,7 @@ function viewer(canvas,ex,opts={}){
     const bm=glr&&opts.body!==false?BODY.get():null;
     drawGuides(J,W,H,dpr);
     const mu=guide.muscles?musc:NOMUSC;
-    if(bm){ if(!body||body.body!==bm||body.mu!==mu) body={body:bm,mu,pose:BODY.makePoser(bm,ex),colors:BODY.colors(bm,mu,ex.uni,pal)};
+    if(bm){ if(!body||body.body!==bm||body.mu!==mu) body={body:bm,mu,pose:BODY.makePoser(bm,ex),colors:BODY.colors(bm,mu,ex.uni,pal,opts.heat)};
       body.mats=body.pose(J); glr.draw(rig.P.props(J,{JA})||[],view,pal,W,H,dpr,false,body); return; }
     const items=scene(J,rig.P.props(J,{JA}),mu,ex.uni);
     if(glr){ glr.draw(items,view,pal,W,H,dpr); return; }

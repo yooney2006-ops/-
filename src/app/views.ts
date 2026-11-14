@@ -1,4 +1,5 @@
 // @ts-nocheck — 아티팩트 원본에서 그대로 옮긴 코드. 타입은 점진적으로 붙인다.
+import { viewInsights, initHeatMaps } from "./insights";
 import { EXMAP, PARTS, WD } from "./catalog";
 import { GOALS, calcTargets, sumMeals } from "./goals";
 import { openSheet } from "./sheets";
@@ -17,8 +18,9 @@ export function render(){
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===ui.tab));
   const v=document.getElementById("view");
   (ui.maps||[]).forEach(m=>m.stop()); ui.maps=[];
-  v.innerHTML = ui.tab==="food"?viewFood(): ui.tab==="workout"?viewWorkout(): ui.tab==="plan"?viewPlan(): viewGuide();
+  v.innerHTML = ui.tab==="food"?viewFood(): ui.tab==="workout"?viewWorkout(): ui.tab==="plan"?viewPlan(): ui.tab==="stats"?viewInsights(): viewGuide();
   if(ui.tab==="workout") initMuscleMaps();
+  if(ui.tab==="stats") initHeatMaps();
 }
 /* 오늘 자극한 근육 지도 (Hevy 참고) */
 export function dayMuscles(d){
@@ -125,8 +127,12 @@ export function viewWorkout(){
     html+=`<section class="card"><div class="spread"><h2>오늘 자극한 근육</h2><span class="xs muted">빨강 3세트 이상 · 살구 그 미만</span></div>
     <div class="grid2" style="margin-top:8px"><canvas id="mapFront" style="width:100%;height:240px" aria-label="앞면 근육 지도"></canvas><canvas id="mapBack" style="width:100%;height:240px" aria-label="뒷면 근육 지도"></canvas></div>
     <div class="row small" style="margin-top:6px"><span>완료 <b class="num">${done}</b>세트</span><span class="muted">·</span><span>볼륨 <b class="num">${r0(vol).toLocaleString()}</b>kg</span>${prs?`<span class="muted">·</span><span style="color:var(--accent)">신기록 <b class="num">${prs}</b>개</span>`:""}</div></section>`; }
+  html+=`<section class="card"><div class="spread"><div class="small">회복도·주간 볼륨·1RM 추이·월간 기록</div><button class="btn sm" data-act="tab" data-tab="stats">분석 보기 ›</button></div></section>`;
+  return html;
+}
+/* 분석 탭으로 옮긴 카드: 회복도 막대, 이번 주 부위별 세트 */
+export function recoveryCards(){
   let ins="";
-  ins+=monthCal();
   // 회복도
   const rec=recovery(ui.date);
   ins+=`<section class="card"><div class="spread"><h2>근육 회복도</h2><span class="muted xs">세트·RIR·시간 기반 추정</span></div><div class="rec" style="margin-top:8px">`;
@@ -140,8 +146,7 @@ export function viewWorkout(){
   MGROUP.forEach(([g])=>{const v=ws[g]||0;const col=v<10?"var(--warn)":v<=20?"var(--good)":"var(--accent)";
     ins+=`<div class="ms" style="grid-template-columns:72px 1fr 44px 40px"><span>${g}</span><div class="bar"><span class="band" style="left:${10/wmax*100}%;width:${10/wmax*100}%"></span><i style="width:${Math.min(100,v/wmax*100)}%;background:${col};position:relative"></i></div><span class="num" style="text-align:right">${r1(v)}</span><span class="xs muted" style="text-align:right">${wf[g]||0}회</span></div>`;});
   ins+=`</div><p class="xs muted" style="margin:8px 0 0">주동근 1세트 = 1, 보조근 = 0.5 (fractional 방식, Pelland 2025) · 완료한 세트만 · 오른쪽 숫자 = 이번 주 훈련 횟수</p></section>`;
-  html+=ins;
-  return html;
+  return ins;
 }
 export function exCard(it,i,mode){
   const t=exType(it); const e=exInfo(it); const log=mode==="log";
@@ -151,19 +156,20 @@ export function exCard(it,i,mode){
   const best=log&&t==="w"?bestE1rm(it.name):0;
   let h=`<section class="card ex"><div class="ex-head"><div><div class="ex-title">${esc(it.name)}</div><div class="row xs muted" style="margin-top:2px"><span class="chip">${esc(exPart(it))}</span>${e&&e.stretch?`<span class="chip badge-s" title="${esc(e.stretch.note)}">스트레치</span>`:""}${it.rirT?`<span class="chip">목표 RIR ${esc(it.rirT)}</span>`:""}${e?`<span>${esc(e.equip)}</span>`:""}${best?`<span>· 추정 1RM 최고 <b class="num">${r1(best)}</b>kg</span>`:""}</div></div>
     <div class="row"><button class="btn sm ghost" data-act="tips" data-ex="${esc(it.exId||"")}" data-name="${esc(it.name)}">팁</button>${log?`<button class="btn sm ghost" data-act="swap" data-i="${i}" data-target="${mode}">교체</button>`:""}<button class="btn sm icon ghost" data-act="moveEx" data-i="${i}" data-d="-1" data-target="${mode}" aria-label="위로">↑</button><button class="btn sm icon ghost" data-act="delEx" data-i="${i}" data-target="${mode}" aria-label="삭제">✕</button></div></div>`;
-  if(log&&pr){ h+=`<div class="xs muted" style="margin-top:6px">지난 기록 (${pr.date.slice(5).replace("-","/")}): ${pr.sets.map(s=>t==="w"?`${s.w}×${s.r}`:`${s.r}${unitR}`).join(", ")}</div>`; }
+  if(log&&pr){ h+=`<div class="prevrow"><span class="xs muted">지난 기록 ${pr.date.slice(5).replace("-","/")} · ${pr.sets.map(s=>t==="w"?`${s.w}×${s.r}`:`${s.r}${unitR}`).join(", ")}</span><button class="btn sm" data-act="loadPrev" data-i="${i}">불러오기</button></div>`; }
   if(sug){ h+=`<div class="hint" style="margin-top:6px">추천: ${esc(sug.msg)} <button class="btn sm" data-act="applySug" data-i="${i}" data-w="${sug.w}" data-r="${sug.r}">적용</button></div>`; }
   const lg=log&&t!=="t"?" lg":"";
   h+=`<div class="sets"><div class="set hdr${lg}"><span style="text-align:center">세트</span><span style="text-align:center">${t==="w"?"무게(kg)":t==="t"?"—":"추가중량"}</span><span style="text-align:center">${t==="t"?"시간(분)":"횟수"}</span>${lg?`<span style="text-align:center" title="남은 반복 수: 몇 개 더 할 수 있었나">RIR</span>`:""}<span style="text-align:center">${log?"완료":""}</span></div>`;
   (it.sets||[]).forEach((s,k)=>{
-    h+=`<div class="set${lg} ${s.done?"done":""}"><span class="n" ${s.pr?'title="신기록" style="color:var(--accent)"':""}>${s.pr?"★":k+1}</span>
+    const pv=log&&pr&&pr.sets[k]?(t==="w"?`${pr.sets[k].w}×${pr.sets[k].r}`:`${pr.sets[k].r}`):"";
+    h+=`<div class="set${lg} ${s.done?"done":""} ${ui.justDone===i+"-"+k?"just":""}"><span class="n" ${s.pr?'title="신기록" style="color:var(--accent)"':""}>${s.pr?"★":k+1}${pv?`<small title="지난번 같은 세트">${pv}</small>`:""}</span>
     <input type="number" inputmode="decimal" step="0.5" min="0" value="${s.w}" ${t==="t"?"disabled":""} data-chg="set" data-target="${mode}" data-i="${i}" data-k="${k}" data-f="w" aria-label="${k+1}세트 무게">
     <input type="number" inputmode="numeric" step="1" min="0" value="${s.r}" data-chg="set" data-target="${mode}" data-i="${i}" data-k="${k}" data-f="r" aria-label="${k+1}세트 ${unitR}">
     ${lg?`<select data-chg="rir" data-i="${i}" data-k="${k}" aria-label="${k+1}세트 RIR">${["","0","1","2","3","4"].map(v=>`<option value="${v}" ${String(s.rir??"")===v?"selected":""}>${v===""?"–":v==="4"?"4+":v}</option>`).join("")}</select>`:""}
     ${log?`<button class="check" data-act="toggleSet" data-i="${i}" data-k="${k}" aria-label="${k+1}세트 완료">✓</button>`:`<button class="btn sm icon ghost" data-act="delSet" data-i="${i}" data-k="${k}" data-target="${mode}" aria-label="세트 삭제">−</button>`}</div>`;
   });
   if(log&&t==="w"&&e&&/바벨|스미스|EZ바/.test(e.equip)){ const nx=(it.sets||[]).find(x=>!x.done)||it.sets[0]; const pc=nx?plateCalc(+nx.w,/스미스/.test(e.equip)?0:/EZ/.test(e.equip)?10:20):null;
-    if(pc) h+=`<div class="xs muted" style="margin-top:6px">원판 계산 (${nx.w}kg, 한쪽): <b class="num" style="color:var(--ink)">${pc.out.join(" + ")||"-"}</b>${pc.rest>0?` · ${pc.rest}kg 남음`:""} · ${/스미스/.test(e.equip)?"스미스 바 무게는 기종마다 달라요":/EZ/.test(e.equip)?"EZ바 10kg 기준":"바 20kg 기준"}</div>`; }
+    if(pc) h+=`<div class="plates" aria-hidden="true"><i class="pbar"></i>${pc.out.map(w=>`<i class="pl p${String(w).replace(".","_")}">${w}</i>`).join("")}<i class="pcol"></i></div><div class="xs muted" style="margin-top:4px">원판 (${nx.w}kg, 한쪽): <b class="num" style="color:var(--ink)">${pc.out.join(" + ")||"-"}</b>${pc.rest>0?` · ${pc.rest}kg 남음`:""} · ${/스미스/.test(e.equip)?"스미스 바 무게는 기종마다 달라요":/EZ/.test(e.equip)?"EZ바 10kg 기준":"바 20kg 기준"}</div>`; }
   h+=`</div><div class="adjust"><button class="btn sm" data-act="setCount" data-i="${i}" data-d="1" data-target="${mode}">+ 세트</button><button class="btn sm" data-act="setCount" data-i="${i}" data-d="-1" data-target="${mode}">− 세트</button>`;
   if(t==="w") h+=`<button class="btn sm" data-act="bulk" data-i="${i}" data-f="w" data-d="-2.5" data-target="${mode}">무게 −2.5</button><button class="btn sm" data-act="bulk" data-i="${i}" data-f="w" data-d="2.5" data-target="${mode}">무게 +2.5</button>`;
   h+=`<button class="btn sm" data-act="bulk" data-i="${i}" data-f="r" data-d="-1" data-target="${mode}">${unitR} −1</button><button class="btn sm" data-act="bulk" data-i="${i}" data-f="r" data-d="1" data-target="${mode}">${unitR} +1</button>`;
@@ -297,6 +303,7 @@ export function exDetail(id,fromName){
   <div class="vctl"><button class="btn sm" data-act="figPlay" id="figPlayBtn">일시정지</button><button class="btn sm" data-act="figSpeed" id="figSpeedBtn" aria-label="재생 속도">${ui.slow?"0.5x":"1.0x"}</button><span style="flex:1"></span><button class="btn sm ghost" data-act="figView" data-y="0">정면</button><button class="btn sm ghost" data-act="figView" data-y="90">측면</button><button class="btn sm ghost" data-act="figView" data-y="180">뒤</button><button class="btn sm ghost" data-act="figView" data-y="def">기본</button></div>
   <div class="vctl guides" role="group" aria-label="자세 가이드"><button class="tgl on" data-act="figGuide" data-g="trail" aria-pressed="true">궤적선</button><button class="tgl on" data-act="figGuide" data-g="muscles" aria-pressed="true">근육 강조</button><button class="tgl" data-act="figGuide" data-g="lines" aria-pressed="false">기준선·관절각</button></div></div>
   <div class="legend"><span><i class="sw" style="background:var(--fig-prim)"></i>주동근: <b>${e.prim.map(k=>MUSCLE_KO[k]).join(", ")}</b></span>${e.sec.length?`<span><i class="sw" style="background:var(--fig-sec)"></i>보조근: ${e.sec.map(k=>MUSCLE_KO[k]).join(", ")}</span>`:""}</div>
+  <div class="xs muted" style="margin-top:4px">점선 = 바·손(또는 발)의 이동 궤적 · 3D 인체 모형: Z-Anatomy, BodyParts3D (CC BY-SA 4.0)</div>
   <div class="grid2" style="margin-top:12px"><div><div class="small" style="font-weight:700;color:var(--good)">운동 포인트</div><ul class="tip-list small">${e.tips.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div><div><div class="small" style="font-weight:700;color:var(--bad)">흔한 실수</div><ul class="tip-list small">${e.mistakes.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div></div>
   <div class="xs muted" style="margin-top:4px">기본 처방: ${e.def[0]}세트 × ${e.def[1]}${unit}${e.def[2]?` · 시작 ${e.def[2]}kg 예시`:""}${e.type!=="t"?` · 권장 휴식 ${e.compound?"2~3분":"1.5~2분"} · 근비대 목표 RIR ${e.compound?"1~2":"0~1"}`:""}</div>
   ${e.stretch?`<div class="hint" style="margin-top:8px;background:color-mix(in srgb,var(--prot) 12%,transparent)"><b>스트레치 강조 운동</b> (근거 ${e.stretch.lvl}) · ${esc(e.stretch.note)}</div>`:""}

@@ -32,7 +32,10 @@ src/app/             화면. state.ts(상태·저장), views.ts(탭), sheets.ts(
 src/data/exercises.js  운동 DB, STRETCH/COMPOUND/EVIDENCE, 카메라 각도 CAMS, BRAND_MACHINES
 src/data/foods.ts    음식 DB
 src/engine/fig.js    3D 동작 엔진
-src/engine/figgl.js  WebGL 렌더러
+src/engine/figgl.js  WebGL 렌더러 (기구는 도형, 몸은 스키닝 모델)
+src/engine/body.js   인체 모델(public/models/body.glb) 읽기, 관절 → 뼈 변환, 근육 색
+src/app/insights.ts  분석 탭
+tools/model/         인체 모델 만드는 스크립트 (Z-Anatomy → glb)
 src/platform/        storage.ts(IndexedDB), backup.ts(JSON 백업), ai.ts(Claude 호출 클라이언트)
 server/ai.ts         Claude 프록시 함수 (API 키는 서버에만)
 tests/               unit(vitest), physics(physcheck·barcheck), render(revshot), e2e(브라우저)
@@ -60,7 +63,8 @@ fig.js의 핵심:
 
 **검수 절차 (동작을 건드릴 때마다 반드시):**
 ```
-npm test                              # 물리 검사(알려진 오탐 4건: goblet, rower, bulgarian, stepup 외 0건) + 바벨 관통 0건
+npm test                              # 물리 검사(알려진 오탐 5건 외 0건) + 바벨 관통 0건 + 분절 길이 불변 + 바-발 중앙 정렬
+node tests/physics/kinematics.mjs [id,id]  # 바 경로·발 중앙 편차 수치
 node tests/physics/physcheck.mjs [id,id]   # 물리 검사 상세
 npm run render -- '{"ids":[...],"s":[[0,90],[0.5,90],[1,90],[0],[1]]}' out.png   # 렌더링해서 눈으로 확인
 ```
@@ -68,9 +72,9 @@ npm run render -- '{"ids":[...],"s":[[0,90],[0.5,90],[1,90],[0],[1]]}' out.png  
 
 ## 5. 알려진 한계와 다음 과제 (우선순위 순)
 
-끝난 것: Vite + TypeScript 이전, IndexedDB 저장, JSON 가져오기/내보내기, Claude 프록시 함수(코드만 — 배포는 아직), PWA, physcheck·barcheck 자동 회귀 테스트.
+끝난 것(자세한 내용은 OVERNIGHT_REPORT.md): 실제 인체 모형(Z-Anatomy 기반, tools/model), 바-발 중앙 정렬 솔버, 벤치 J-커브, 가이드 오버레이, 분석 탭, 하단 탭, Vite + TypeScript 이전, IndexedDB 저장, JSON 가져오기/내보내기, Claude 프록시 함수(코드만 — 배포는 아직), PWA, physcheck·barcheck 자동 회귀 테스트.
 
-1. **인체 모형을 실제 3D 모델로 교체.** 지금은 도형을 조합한 절차적 모형이라 사실감에 한계가 있다. three.js + 뼈대가 들어 있는 인체 glTF 모델로 바꾸고, 근육 부위별로 색을 칠할 수 있게 한다. 라이선스가 허용되는 모델만 쓴다. fig.js의 관절 계산·IK·물리 보정 결과는 본(bone) 회전으로 변환해 재사용한다. **계획을 먼저 보여 주고 승인받은 뒤 진행한다.**
+1. **인체 모형 다듬기.** 팔을 머리 위로 올릴 때 어깨·겨드랑이 변형, 엄지 모양, 아래팔이 실제보다 짧은 비율(엔진의 아래팔 길이 0.27m가 손 쥐는 점까지라서), 브랜드 머신 111개 개별 검수. 모델을 고치면 `tools/model/build.py`만 다시 돌린다.
 2. **배포.** 휴대폰에서 쓰려면 HTTPS 주소가 필요하다. 어디에 올릴지(정적 호스팅 + 서버리스 함수)와 API 키 발급은 내가 정한다.
 3. `src/app/*.ts`에 타입 붙이기(`@ts-nocheck` 제거), views.ts를 탭별 파일로 나누기.
 4. 운동별 카메라 각도(CAMS) 재계산 — 모형과 일부 동작이 바뀐 뒤 다시 돌리지 않았다.

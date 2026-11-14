@@ -10,13 +10,16 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "node tests/e2e/smoke.mjs",
-    "render": "node tests/render/revshot.mjs"
+    "render": "node tests/render/revshot.mjs",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
+    "eslint": "^10.15.0",
     "fake-indexeddb": "^6.2.8",
     "playwright": "^1.63.0",
-    "typescript": "^7.0.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.2",
     "vite": "^8.3.8",
     "vite-plugin-pwa": "^2.0.0",
     "vitest": "^5.1.0"
