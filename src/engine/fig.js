@@ -226,7 +226,9 @@ function makeRig(anim,ex){
     if(barEq&&P.barFix!==false) barClear(J);
     return J;
   }
-  return {P,at,cycle:!!P.at};
+  // 같은 진행도는 다시 풀지 않는다 (1/120 단위로 캐시 → 한 바퀴 돈 뒤에는 계산 없이 재생)
+  const memo=new Map(); const atQ=s=>{ const q=Math.round(Math.max(0,Math.min(1,s))*120); let J=memo.get(q); if(!J){ J=at(q/120); memo.set(q,J); } return J; };
+  return {P,at:atQ,cycle:!!P.at};
 }
 
 /* ---------- 그리기 ---------- */
@@ -458,12 +460,18 @@ function press(o){
   let TA,TB,bend=[1,-.7,-.6];
   const db=tool==='db';
   if(pos==='flat'||pos==='smith'){TA=db?[.40,.35,.15]:[.36,.33,.18];TB=db?[.24,.42,.56]:[.34,.42,.56];}
+  // 프리웨이트 벤치: 락아웃은 어깨 수직선 위, 최저점은 명치·하부 흉근(어깨보다 발 쪽) → 사선 궤적
+  if(pos==='flat'&&!close) TB[1]=L.shY;
   if(pos==='incline'){TA=db?[.40,.42,.15]:[.36,.41,.18];TB=db?[.24,.66,.48]:[.33,.66,.48];bend=[1,-.5,-.6];}
   if(pos==='decline'){TA=[.36,.28,.18];TB=[.32,.27,.53];}
   if(pos==='seated'||pos==='machine'){TA=[.32,.36,.14];TB=o.decl?[.27,.2,.52]:[.28,.29,.55];bend=[1,-.5,-.7];}
   if(pos==='standing'){TA=[.32,.36,.14];TB=[.26,.3,.56];}
   if(close){TA=[.19,.30,.18];TB=[.2,.40,.56];bend=[.35,-1,-.5];}
-  const ik=armIK(TA,TB,bend);
+  // J-커브: 가슴에서 밀어 올릴 때 바가 먼저 어깨 쪽으로 빠르게 이동하고 그다음 수직으로 올라간다 (스미스·머신은 레일을 따라 직선)
+  const jcurve=sup&&pos!=='smith'&&tool!=='machine'?s=>[s,1-Math.pow(1-s,2.4),s]:null;
+  // 팔꿈치: 최저점에서는 몸통 쪽으로 접고(약 45~60°), 올라가며 벌어진다
+  const bendTop=jcurve&&!close?[bend[0],bend[1]*.55,bend[2]]:null, bendBot=jcurve&&!close?[bend[0],bend[1]*1.25,bend[2]]:bend;
+  const ik=armIK(TA,TB,bendBot,bendTop,jcurve);
   const piv = sup?[0,BENCHY,.28]:[0,.58,0];
   if(pos==='incline'){piv[1]=.52;piv[2]=.12}
   if(pos==='decline'){piv[1]=.62;}
@@ -804,9 +812,10 @@ function ik2(hip,tgt,a,b,bend){
   return {d1:norm(sub(knee,hip)),d2:norm(sub(ank,knee))};
 }
 /* 손 목표점 기반 팔 IK (몸통 좌표, x는 왼쪽 기준) */
-function armIK(TA,TB,bA,bB){
+function armIK(TA,TB,bA,bB,curve){
   return (p,loc,s)=>{for(const [k,side] of [['L',1],['R',-1]]){
-    const t=lerpV(TA,TB,s), b=lerpV(bA,bB||bA,s);
+    const c=curve?curve(s):null; // 축마다 다른 진행도 → 직선이 아닌 궤적(예: 벤치프레스 J-커브)
+    const t=c?[lerp(TA[0],TB[0],c[0]),lerp(TA[1],TB[1],c[1]),lerp(TA[2],TB[2],c[2])]:lerpV(TA,TB,s), b=lerpV(bA,bB||bA,s);
     const sh=[side*L.shX,L.shY+(p.scap||0),0];
     const r=ik2(sh,[side*t[0],t[1],t[2]],L.ua,L.fa,norm([side*b[0],b[1],b[2]]));
     loc[k].ua=r.d1;loc[k].fa=r.d2;}};
@@ -828,42 +837,100 @@ function viewer(canvas,ex,opts={}){
   const view={yaw:camY,pitch:camP,target:rig.P.cam.target,dist:4.2,span:(rig.P.cam.span||2.5)*1.02};
   const musc={};(ex.prim||[]).forEach(m=>musc[m]=1);(ex.sec||[]).forEach(m=>{if(!musc[m])musc[m]=2;});
   let playing=opts.autoplay!==false, speed=1, t0=performance.now(), tAcc=0, raf=0, last=performance.now(), alive=true;
-  let pal=palette(canvas), body=null;
-  if(glr&&opts.body!==false) BODY.load().then(()=>{ if(alive&&!playing) frame(phase(tAcc)); });
-  const T=3.2;
-  function phase(t){ if(rig.cycle) return (t/1.6)%1; const u=(t%T)/T; // A 0.3s 유지 → 1.25s → B 0.3s 유지 → 1.35s
-    const e=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
-    if(u<.09) return 0; if(u<.48) return e((u-.09)/.39); if(u<.57) return 1; return 1-e((u-.57)/.43);}
+  let pal=palette(canvas), body=null; const NOMUSC={};
+  if(glr&&opts.body!==false) BODY.load().then(()=>{ dirty=true; if(alive&&!playing) frame(phase(tAcc)); });
+  // 템포: 단축성(들어 올리는) 구간은 빠르게 출발해 정점에서 감속, 신장성(내리는) 구간은 더 길게 버티며 내린다.
+  // 케이블·머신 고립 운동은 정점 수축에서 조금 더 멈춘다.
+  const ECC_AB=['squat','lunge','legpress','pushup','dip'].includes(ex.anim.p)||(ex.anim.p==='hinge'&&!['dl','sumo',undefined].includes((ex.anim.o||{}).kind));
+  const iso=!ex.compound&&/머신|케이블/.test(ex.cat||'');
+  const tCon=1.05,tEcc=1.55,hPeak=iso?.5:.3,hStretch=.22;
+  // A→B가 신장성이면 [A 유지, 내리기, B(최저점) 유지, 올리기] 순서
+  const seg=ECC_AB?[hPeak*.6,tEcc,hStretch,tCon]:[hStretch,tCon,hPeak,tEcc];
+  const T=seg[0]+seg[1]+seg[2]+seg[3];
+  const eCon=x=>1-Math.pow(1-x,2.2)*(1-.25*x), eEcc=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+  function phase(t){ if(rig.cycle) return (t/1.6)%1; let u=t%T;
+    if(u<seg[0]) return 0; u-=seg[0];
+    if(u<seg[1]) return (ECC_AB?eEcc:eCon)(u/seg[1]); u-=seg[1];
+    if(u<seg[2]) return 1; u-=seg[2];
+    return 1-(ECC_AB?eCon:eEcc)(u/seg[3]);}
   function frame(s){
     const dpr=Math.min(2,window.devicePixelRatio||1); const W=canvas.clientWidth||300,H=canvas.clientHeight||300;
     const J=rig.at(s);
     // 실제 인체 모델이 준비됐으면 몸은 모델로, 기구만 도형으로 그린다. 아니면 예전 도형 모형
     if(glr&&opts.body!==false&&!BODY.settled()) return; // 모델을 받는 중: 잠깐 빈 화면 (도형 모형이 번쩍 보였다 바뀌지 않게)
     const bm=glr&&opts.body!==false?BODY.get():null;
-    if(bm){ if(!body||body.body!==bm) body={body:bm,pose:BODY.makePoser(bm,ex),colors:BODY.colors(bm,musc,ex.uni,pal)};
+    drawGuides(J,W,H,dpr);
+    const mu=guide.muscles?musc:NOMUSC;
+    if(bm){ if(!body||body.body!==bm||body.mu!==mu) body={body:bm,mu,pose:BODY.makePoser(bm,ex),colors:BODY.colors(bm,mu,ex.uni,pal)};
       body.mats=body.pose(J); glr.draw(rig.P.props(J,{JA})||[],view,pal,W,H,dpr,false,body); return; }
-    const items=scene(J,rig.P.props(J,{JA}),musc,ex.uni);
+    const items=scene(J,rig.P.props(J,{JA}),mu,ex.uni);
     if(glr){ glr.draw(items,view,pal,W,H,dpr); return; }
     if(canvas.width!==Math.round(W*dpr)||canvas.height!==Math.round(H*dpr)){canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);}
     ctx.setTransform(dpr,0,0,dpr,0,0);
     draw(ctx,W,H,items,view,pal);
   }
-  function loop(now){ if(!alive)return; const dt=(now-last)/1000; last=now; if(playing) tAcc+=dt*speed; frame(phase(tAcc)); raf=requestAnimationFrame(loop); }
+  /* ----- 가이드 오버레이 (2D 캔버스를 3D 위에 겹침) ----- */
+  const guide={trail:true,lines:false,muscles:true};
+  let ov=null,octx=null;
+  if(opts.overlay&&canvas.parentElement){ ov=document.createElement('canvas'); ov.className='fig-ov'; ov.style.cssText='position:absolute;left:0;top:0;pointer-events:none;cursor:default'; canvas.parentElement.insertBefore(ov,canvas.nextSibling); octx=ov.getContext('2d'); }
+  const mid3=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2];
+  // 궤적을 그릴 점: 동작 중 가장 많이 움직이는 끝점(바·손, 다리 운동이면 발목, 그 외 골반·머리)
+  const TRACK=[J=>mid3(J.haL,J.haR),J=>mid3(J.anL,J.anR),J=>J.pelvis,J=>J.head];
+  let trail=null; function getTrail(){ if(trail) return trail; let best=null,bd=-1;
+    for(const f of TRACK){ const pts=[]; for(let i=0;i<=40;i++) pts.push(f(rig.at(i/40))); let d=0; for(let i=1;i<pts.length;i++) d+=len(sub(pts[i],pts[i-1])); if(d>bd*1.15){bd=d;best={pts,f};} }
+    return (trail=best); }
+  function proj(p,W,H){ const Rr=Math.PI/180,yaw=view.yaw*Rr,pit=view.pitch*Rr,cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pit),sp=Math.sin(pit);
+    const t=view.target||[0,.9,0],x=p[0]-t[0],y=p[1]-t[1],z=p[2]-t[2];
+    const x1=x*cy-z*sy,z1=x*sy+z*cy,y1=y*cp-z1*sp,z2=y*sp+z1*cp; const d=view.dist||4.2,F=Math.min(W,H*1.15)*d/(view.span||2.5),dep=d-z2;
+    return [W/2+x1*F/dep,H/2-y1*F/dep+.05*H]; }
+  const angAt=(a,b,c)=>{const u=norm(sub(a,b)),v=norm(sub(c,b));return Math.acos(Math.max(-1,Math.min(1,dot(u,v))))*180/Math.PI;};
+  function drawGuides(J,W,H,dpr){
+    if(!octx) return; if(ov.width!==Math.round(W*dpr)||ov.height!==Math.round(H*dpr)){ov.width=Math.round(W*dpr);ov.height=Math.round(H*dpr);}
+    octx.setTransform(dpr,0,0,dpr,0,0); octx.clearRect(0,0,W,H);
+    const acc='rgb('+pal.prim.join(',')+')', ink=getComputedStyle(canvas).getPropertyValue('--ink')||'#222';
+    if(guide.lines){
+      // 발 중앙 수직선 (서서 하는 운동)
+      if(STANDA.has(rig.P.anchor.type)&&!rig.P.noPhys){ const mz=(J.heelL[2]+J.toeL[2]+J.heelR[2]+J.toeR[2])/4, mx=(J.anL[0]+J.anR[0])/2; const a=proj([mx,0,mz],W,H),b=proj([mx,2.05,mz],W,H);
+        octx.strokeStyle='#2f9e62';octx.lineWidth=1.5;octx.setLineDash([6,5]);octx.beginPath();octx.moveTo(a[0],a[1]);octx.lineTo(b[0],b[1]);octx.stroke();octx.setLineDash([]);
+        octx.fillStyle='#2f9e62';octx.font='600 11px system-ui,sans-serif';octx.fillText('발 중앙',a[0]+5,a[1]-4); }
+      // 관절 각도: 동작 중 15° 이상 변하는 관절만 (카메라 쪽 팔다리)
+      const k=ex.uni||((()=>{const l=proj(J.shL,W,H),r=proj(J.shR,W,H);return view.yaw%360>0&&view.yaw%360<180?'L':'R';})());
+      const JS=[['팔꿈치',Q=>[Q['sh'+k],Q['el'+k],Q['ha'+k]]],['무릎',Q=>[Q['hip'+k],Q['kn'+k],Q['an'+k]]],['고관절',Q=>[Q['sh'+k],Q['hip'+k],Q['kn'+k]]]];
+      const JA0=rig.at(0),JB0=rig.at(1),JM=rig.at(.5);
+      octx.font='700 12px system-ui,sans-serif';
+      for(const [nm,f] of JS){ const r=[JA0,JM,JB0].map(Q=>angAt(...f(Q))); if(Math.max(...r)-Math.min(...r)<15) continue;
+        const [a,b,c]=f(J); const deg=Math.round(angAt(a,b,c)); const pb=proj(b,W,H),pa=proj(a,W,H),pc=proj(c,W,H);
+        const a1=Math.atan2(pa[1]-pb[1],pa[0]-pb[0]),a2=Math.atan2(pc[1]-pb[1],pc[0]-pb[0]); let da=a2-a1; while(da>Math.PI)da-=2*Math.PI; while(da<-Math.PI)da+=2*Math.PI;
+        octx.strokeStyle='#1c7ed6';octx.lineWidth=2;octx.beginPath();octx.arc(pb[0],pb[1],16,a1,a2,da<0);octx.stroke();
+        const am=a1+da/2,tx=pb[0]+Math.cos(am)*30,ty=pb[1]+Math.sin(am)*30; const lab=deg+'°';
+        octx.fillStyle='rgba(255,255,255,.88)';const tw=octx.measureText(lab).width;octx.fillRect(tx-tw/2-3,ty-9,tw+6,16);octx.fillStyle='#1864ab';octx.textAlign='center';octx.fillText(lab,tx,ty+3);octx.textAlign='left'; }
+    }
+    if(guide.trail&&!rig.cycle){ const tr=getTrail(); octx.strokeStyle=acc;octx.lineWidth=2;octx.setLineDash([3,5]);octx.lineCap='round';octx.beginPath();
+      tr.pts.forEach((p,i)=>{const q=proj(p,W,H); if(i)octx.lineTo(q[0],q[1]); else octx.moveTo(q[0],q[1]);}); octx.stroke();octx.setLineDash([]);
+      const c=proj(tr.f(J),W,H); octx.fillStyle='#fff';octx.beginPath();octx.arc(c[0],c[1],5,0,7);octx.fill();octx.fillStyle=acc;octx.beginPath();octx.arc(c[0],c[1],3.5,0,7);octx.fill(); }
+  }
+  let visible=true, dirty=true;
+  if(typeof IntersectionObserver!=='undefined'){ try{ const io=new IntersectionObserver(es=>{visible=es[0].isIntersecting;dirty=true;}); io.observe(canvas); }catch(e){} }
+  // 화면에 안 보이거나(스크롤 밖·백그라운드 탭) 멈춘 상태에서 바뀐 게 없으면 그리지 않는다 → 배터리·메인 스레드 절약
+  function loop(now){ if(!alive)return; const dt=Math.min(.1,(now-last)/1000); last=now;
+    if(visible&&!document.hidden&&(playing||dirty)){ if(playing) tAcc+=dt*speed; frame(phase(tAcc)); dirty=false; }
+    raf=requestAnimationFrame(loop); }
   // 드래그 회전
   let drag=null;
   canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,yaw:view.yaw,pitch:view.pitch};canvas.setPointerCapture(e.pointerId);});
-  canvas.addEventListener('pointermove',e=>{if(!drag)return;view.yaw=drag.yaw-(e.clientX-drag.x)*.5;view.pitch=Math.max(-10,Math.min(70,drag.pitch+(e.clientY-drag.y)*.3));if(!playing)frame(phase(tAcc));});
+  canvas.addEventListener('pointermove',e=>{if(!drag)return;dirty=true;view.yaw=drag.yaw-(e.clientX-drag.x)*.5;view.pitch=Math.max(-10,Math.min(70,drag.pitch+(e.clientY-drag.y)*.3));if(!playing)frame(phase(tAcc));});
   canvas.addEventListener('pointerup',()=>drag=null);canvas.addEventListener('pointercancel',()=>drag=null);
   const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(reduce) speed=.5;
   raf=requestAnimationFrame(loop);
   return {
     setView(y,p){view.yaw=y;if(p!=null)view.pitch=p;frame(phase(tAcc));},
+    setGuide(name,on){guide[name]=on;dirty=true;if(!playing)frame(phase(tAcc));}, guide:()=>({...guide}),
     setSpan(v,t){view.span=v;if(t)view.target=t;},
     defaultView(){view.yaw=camY;view.pitch=camP;},
     toggle(){playing=!playing;return playing;}, setSpeed(v){speed=v;}, playing:()=>playing,
     repaint(){pal=palette(canvas);body=null;},
-    stop(){alive=false;cancelAnimationFrame(raf);},
+    stop(){alive=false;cancelAnimationFrame(raf);if(ov)ov.remove();},
     frameAt(s){frame(s);}, isGL:()=>!!glr
   };
 }
