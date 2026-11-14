@@ -1,0 +1,11 @@
+body.glb — 짐로그 3D 인체 모형
+
+이 파일은 아래 자료를 가공해 만든 2차 저작물이며 CC BY-SA 4.0으로 배포합니다.
+(가공 내용: 근육·뼈 선별, 삼각형 수 축소, 손가락·발 자세 수정, 신체 비율 조정, 뼈대 연결. 만드는 스크립트는 tools/model/)
+
+  - "Z-Anatomy - The libre 3D atlas of anatomy - CC-BY-SA 4.0"
+    https://github.com/Z-Anatomy/Models-of-human-anatomy
+  - "BodyParts3D - The Database Center for Life Science - CC-BY-SA 2.1 Japan"
+    https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html
+
+CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/

@@ -51,7 +51,8 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,woff2,glb}"],
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024, // 인체 모델(약 2.5MB)도 오프라인에서 쓰도록
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           { urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//, handler: "StaleWhileRevalidate", options: { cacheName: "fonts" } },

@@ -1,4 +1,5 @@
 import { FIGGL } from "./figgl.js";
+import { BODY } from "./body.js";
 /* ============================================================
    FIG: 캔버스 3D 마네킹 렌더러 (외부 라이브러리 없음)
    좌표: y 위, z 정면(몸이 바라보는 쪽), x = 몸의 왼쪽
@@ -193,7 +194,7 @@ function hex(c){c=c.trim();if(c.startsWith('#')){if(c.length===4)c='#'+c[1]+c[1]
 function shade(rgb,f){return `rgb(${rgb.map(v=>Math.max(0,Math.min(255,Math.round(f>=1?v+(255-v)*(f-1):v*f)))).join(',')})`}
 function palette(el){
   const cs=getComputedStyle(el); const g=n=>hex(cs.getPropertyValue(n)||'#888');
-  return {shorts:g('--fig-shorts'),plate:g('--fig-plate'),hair:g('--fig-hair'),muscle:g('--fig-muscle'),deep:g('--fig-deep'),tendon:g('--fig-tendon'),head:g('--fig-head'),skin:g('--fig-skin'),prim:g('--fig-prim'),sec:g('--fig-sec'),metal:g('--fig-metal'),pad:g('--fig-pad'),frame:g('--fig-frame'),floor:g('--fig-floor'),bg:g('--fig-bg')};
+  return {bone:g('--fig-bone'),shorts:g('--fig-shorts'),plate:g('--fig-plate'),hair:g('--fig-hair'),muscle:g('--fig-muscle'),deep:g('--fig-deep'),tendon:g('--fig-tendon'),head:g('--fig-head'),skin:g('--fig-skin'),prim:g('--fig-prim'),sec:g('--fig-sec'),metal:g('--fig-metal'),pad:g('--fig-pad'),frame:g('--fig-frame'),floor:g('--fig-floor'),bg:g('--fig-bg')};
 }
 /* ---------- 근육 해부도 피겨 ----------
    각 근육 = 근복(spindle): 양 끝(a,b), 최대 반지름 r, 끝 반지름 re, 볼록 위치 pk, 근육 키 */
@@ -787,14 +788,21 @@ function viewer(canvas,ex,opts={}){
   const view={yaw:camY,pitch:camP,target:rig.P.cam.target,dist:4.2,span:(rig.P.cam.span||2.5)*1.02};
   const musc={};(ex.prim||[]).forEach(m=>musc[m]=1);(ex.sec||[]).forEach(m=>{if(!musc[m])musc[m]=2;});
   let playing=opts.autoplay!==false, speed=1, t0=performance.now(), tAcc=0, raf=0, last=performance.now(), alive=true;
-  let pal=palette(canvas);
+  let pal=palette(canvas), body=null;
+  if(glr&&opts.body!==false) BODY.load().then(()=>{ if(alive&&!playing) frame(phase(tAcc)); });
   const T=3.2;
   function phase(t){ if(rig.cycle) return (t/1.6)%1; const u=(t%T)/T; // A 0.3s 유지 → 1.25s → B 0.3s 유지 → 1.35s
     const e=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
     if(u<.09) return 0; if(u<.48) return e((u-.09)/.39); if(u<.57) return 1; return 1-e((u-.57)/.43);}
   function frame(s){
     const dpr=Math.min(2,window.devicePixelRatio||1); const W=canvas.clientWidth||300,H=canvas.clientHeight||300;
-    const J=rig.at(s); const items=scene(J,rig.P.props(J,{JA}),musc,ex.uni);
+    const J=rig.at(s);
+    // 실제 인체 모델이 준비됐으면 몸은 모델로, 기구만 도형으로 그린다. 아니면 예전 도형 모형
+    if(glr&&opts.body!==false&&!BODY.settled()) return; // 모델을 받는 중: 잠깐 빈 화면 (도형 모형이 번쩍 보였다 바뀌지 않게)
+    const bm=glr&&opts.body!==false?BODY.get():null;
+    if(bm){ if(!body||body.body!==bm) body={body:bm,pose:BODY.makePoser(bm,ex),colors:BODY.colors(bm,musc,ex.uni,pal)};
+      body.mats=body.pose(J); glr.draw(rig.P.props(J,{JA})||[],view,pal,W,H,dpr,false,body); return; }
+    const items=scene(J,rig.P.props(J,{JA}),musc,ex.uni);
     if(glr){ glr.draw(items,view,pal,W,H,dpr); return; }
     if(canvas.width!==Math.round(W*dpr)||canvas.height!==Math.round(H*dpr)){canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);}
     ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -814,12 +822,12 @@ function viewer(canvas,ex,opts={}){
     setSpan(v,t){view.span=v;if(t)view.target=t;},
     defaultView(){view.yaw=camY;view.pitch=camP;},
     toggle(){playing=!playing;return playing;}, setSpeed(v){speed=v;}, playing:()=>playing,
-    repaint(){pal=palette(canvas);},
+    repaint(){pal=palette(canvas);body=null;},
     stop(){alive=false;cancelAnimationFrame(raf);},
     frameAt(s){frame(s);}, isGL:()=>!!glr
   };
 }
-return {viewer,makeRig,scene,draw,palette};
+return {viewer,makeRig,scene,draw,palette,body:BODY};
 })();
 
 export { FIG };

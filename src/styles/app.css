@@ -1,5 +1,5 @@
 :root{
-  --fig-muscle:#e6dccb; --fig-deep:#d8ccb8; --fig-tendon:#e6dccb; --fig-head:#e9e0d0; --fig-hair:#c9bca6; --fig-plate:#3f434c; --fig-skin:#e9e0d0; --fig-shorts:#2a2e36; --fig-prim:#d23f2a; --fig-sec:#ef9c76; --fig-metal:#8a909c; --fig-pad:#3a3f4b; --fig-frame:#5b6170; --fig-floor:#e6e9ee; --fig-bg:#f6f7fa;
+  --fig-muscle:#e6dccb; --fig-bone:#f4efe4; --fig-deep:#d8ccb8; --fig-tendon:#e6dccb; --fig-head:#e9e0d0; --fig-hair:#c9bca6; --fig-plate:#3f434c; --fig-skin:#e9e0d0; --fig-shorts:#2a2e36; --fig-prim:#d23f2a; --fig-sec:#ef9c76; --fig-metal:#8a909c; --fig-pad:#3a3f4b; --fig-frame:#5b6170; --fig-floor:#e6e9ee; --fig-bg:#f6f7fa;
   /* 팔레트: 차가운 회색 바탕 + 시그널 오렌지 강조, 매크로는 고정 색 3개 */
   --bg:#eef0f4; --surface:#ffffff; --surface-2:#f6f7fa; --ink:#141927; --muted:#646c80; --line:#dfe3ea;
   --accent:#ee5113; --accent-ink:#ffffff; --accent-soft:#fde8de;
@@ -11,7 +11,7 @@
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --fig-muscle:#d9cfbd; --fig-deep:#c9bda8; --fig-tendon:#d9cfbd; --fig-head:#ddd3c2; --fig-hair:#bcae97; --fig-plate:#5a5f69; --fig-skin:#ddd3c2; --fig-shorts:#15181e; --fig-prim:#ff5a40; --fig-sec:#f3a885; --fig-metal:#a5abb7; --fig-pad:#2a2f3a; --fig-frame:#6c7383; --fig-floor:#2a303c; --fig-bg:#1e232e;
+    --fig-muscle:#d9cfbd; --fig-bone:#ece5d6; --fig-deep:#c9bda8; --fig-tendon:#d9cfbd; --fig-head:#ddd3c2; --fig-hair:#bcae97; --fig-plate:#5a5f69; --fig-skin:#ddd3c2; --fig-shorts:#15181e; --fig-prim:#ff5a40; --fig-sec:#f3a885; --fig-metal:#a5abb7; --fig-pad:#2a2f3a; --fig-frame:#6c7383; --fig-floor:#2a303c; --fig-bg:#1e232e;
     --bg:#0e1117; --surface:#171b24; --surface-2:#1e232e; --ink:#e8ebf2; --muted:#959cae; --line:#2a303c;
     --accent:#ff6b30; --accent-ink:#130a05; --accent-soft:#3a2016;
     --carb:#f0aa22; --prot:#5b8cff; --fat:#f0628f; --good:#3cc47a; --warn:#f0a530; --bad:#ff6a6a;
@@ -19,7 +19,7 @@
   }
 }
 :root[data-theme="dark"]{
-    --fig-muscle:#d9cfbd; --fig-deep:#c9bda8; --fig-tendon:#d9cfbd; --fig-head:#ddd3c2; --fig-hair:#bcae97; --fig-plate:#5a5f69; --fig-skin:#ddd3c2; --fig-shorts:#15181e; --fig-prim:#ff5a40; --fig-sec:#f3a885; --fig-metal:#a5abb7; --fig-pad:#2a2f3a; --fig-frame:#6c7383; --fig-floor:#2a303c; --fig-bg:#1e232e;
+    --fig-muscle:#d9cfbd; --fig-bone:#ece5d6; --fig-deep:#c9bda8; --fig-tendon:#d9cfbd; --fig-head:#ddd3c2; --fig-hair:#bcae97; --fig-plate:#5a5f69; --fig-skin:#ddd3c2; --fig-shorts:#15181e; --fig-prim:#ff5a40; --fig-sec:#f3a885; --fig-metal:#a5abb7; --fig-pad:#2a2f3a; --fig-frame:#6c7383; --fig-floor:#2a303c; --fig-bg:#1e232e;
   --bg:#0e1117; --surface:#171b24; --surface-2:#1e232e; --ink:#e8ebf2; --muted:#959cae; --line:#2a303c;
   --accent:#ff6b30; --accent-ink:#130a05; --accent-soft:#3a2016;
   --carb:#f0aa22; --prot:#5b8cff; --fat:#f0628f; --good:#3cc47a; --warn:#f0a530; --bad:#ff6a6a;

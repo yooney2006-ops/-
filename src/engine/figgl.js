@@ -20,6 +20,14 @@ void main(){if(uFlat>0.5){gl_FragColor=vec4(vC,1.0);return;}vec3 n=normalize(vN)
  float edge=1.0-abs(n.z);c*=1.0-mix(0.32,0.42,hot)*pow(edge,2.2);
  if(hot>0.5){float st=abs(sin(vF*44.0));c*=0.93+0.07*smoothstep(0.2,0.9,st);}
  gl_FragColor=vec4(c,1.0);}`;
+/* 인체 모델용: 뼈 행렬로 정점을 움직인다(스키닝). 조명은 같은 FS */
+const VSB=`attribute vec3 aP;attribute vec3 aN;attribute vec4 aC;attribute vec4 aJ;attribute vec4 aW;
+uniform mat4 uB[24];uniform mat3 uR;uniform vec3 uT;uniform float uD,uFx,uFy,uOy;
+varying vec3 vN;varying vec3 vC;varying float vF;
+void main(){mat4 m=uB[int(aJ.x)]*aW.x+uB[int(aJ.y)]*aW.y+uB[int(aJ.z)]*aW.z+uB[int(aJ.w)]*aW.w;
+ vec3 p=(m*vec4(aP,1.0)).xyz;vec3 q=uR*(p-uT);float dep=uD-q.z;float n=0.05,f=40.0;
+ gl_Position=vec4(q.x*uFx,q.y*uFy-uOy*dep,dep*(f+n)/(f-n)-2.0*f*n/(f-n),dep);
+ vN=uR*normalize(mat3(m[0].xyz,m[1].xyz,m[2].xyz)*aN);vC=aC.rgb;vF=0.0;}`;
 function sh(gl,t,src){const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;}
 function create(canvas){
   let gl=null,u32=true;
@@ -31,6 +39,32 @@ function create(canvas){
   const loc={P:gl.getAttribLocation(pr,'aP'),N:gl.getAttribLocation(pr,'aN'),C:gl.getAttribLocation(pr,'aC'),F:gl.getAttribLocation(pr,'aF'),
     R:gl.getUniformLocation(pr,'uR'),T:gl.getUniformLocation(pr,'uT'),D:gl.getUniformLocation(pr,'uD'),Fx:gl.getUniformLocation(pr,'uFx'),Fy:gl.getUniformLocation(pr,'uFy'),Oy:gl.getUniformLocation(pr,'uOy'),Fl:gl.getUniformLocation(pr,'uFlat')};
   const vb=gl.createBuffer(),ib=gl.createBuffer(),lb=gl.createBuffer();
+  // 인체 모델(스키닝) 프로그램과 버퍼: 모델이 처음 그려질 때 만든다
+  let bp=null,bl=null,bbuf=null;
+  function bodyInit(){
+    bp=gl.createProgram();gl.attachShader(bp,sh(gl,gl.VERTEX_SHADER,VSB));gl.attachShader(bp,sh(gl,gl.FRAGMENT_SHADER,FS));gl.linkProgram(bp);
+    if(!gl.getProgramParameter(bp,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(bp));
+    bl={};for(const a of ['aP','aN','aC','aJ','aW']) bl[a]=gl.getAttribLocation(bp,a);
+    for(const u of ['uB','uR','uT','uD','uFx','uFy','uOy','uFlat']) bl[u]=gl.getUniformLocation(bp,u);
+  }
+  function bodyDraw(b,Rm,T,d,fx,fy){
+    if(!u32&&b.body.nv>65535) return false;
+    if(!bp) bodyInit();
+    const m=b.body;
+    if(!bbuf||bbuf.id!==m.id){ bbuf={id:m.id,p:gl.createBuffer(),n:gl.createBuffer(),j:gl.createBuffer(),w:gl.createBuffer(),c:gl.createBuffer(),i:gl.createBuffer(),col:null};
+      const up=(buf,data)=>{gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);};
+      up(bbuf.p,m.pos);up(bbuf.n,m.nrm);up(bbuf.j,m.jnt);up(bbuf.w,m.wgt);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,bbuf.i);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,u32?m.idx:new Uint16Array(m.idx),gl.STATIC_DRAW); }
+    if(bbuf.col!==b.colors){gl.bindBuffer(gl.ARRAY_BUFFER,bbuf.c);gl.bufferData(gl.ARRAY_BUFFER,b.colors,gl.STATIC_DRAW);bbuf.col=b.colors;}
+    gl.useProgram(bp);
+    const at=(loc,buf,n,type,nz)=>{gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,n,type,!!nz,0,0);};
+    at(bl.aP,bbuf.p,3,gl.FLOAT);at(bl.aN,bbuf.n,3,gl.FLOAT);at(bl.aJ,bbuf.j,4,gl.UNSIGNED_BYTE);at(bl.aW,bbuf.w,4,gl.UNSIGNED_BYTE,true);at(bl.aC,bbuf.c,4,gl.FLOAT);
+    gl.uniformMatrix4fv(bl.uB,false,b.mats);gl.uniformMatrix3fv(bl.uR,false,Rm);gl.uniform3fv(bl.uT,T);
+    gl.uniform1f(bl.uD,d);gl.uniform1f(bl.uFx,fx);gl.uniform1f(bl.uFy,fy);gl.uniform1f(bl.uOy,.1);gl.uniform1f(bl.uFlat,0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,bbuf.i);gl.drawElements(gl.TRIANGLES,m.idx.length,u32?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT,0);
+    for(const a of ['aP','aN','aC','aJ','aW']) gl.disableVertexAttribArray(bl[a]);
+    return true;
+  }
   let V=new Float32Array(1<<18),I=new Uint32Array(1<<18),nv=0,ni=0;
   const grow=()=>{if(nv*10+4000>V.length){const n=new Float32Array(V.length*2);n.set(V);V=n;} if(ni+8000>I.length){const n=new Uint32Array(I.length*2);n.set(I);I=n;}};
   const vert=(p,n,c,f)=>{const o=nv*10;V[o]=p[0];V[o+1]=p[1];V[o+2]=p[2];V[o+3]=n[0];V[o+4]=n[1];V[o+5]=n[2];V[o+6]=c[0];V[o+7]=c[1];V[o+8]=c[2];V[o+9]=f;return nv++;};
@@ -76,7 +110,7 @@ function create(canvas){
       else if(it.k==='l'){capsule(it.a,it.b,.007,C(pal[it.c]||pal.metal));}
     }
   }
-  function draw(items,view,pal,W,H,dpr,flat){
+  function draw(items,view,pal,W,H,dpr,flat,body){
     build(items,pal,flat);
     canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
     gl.viewport(0,0,canvas.width,canvas.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
@@ -96,6 +130,8 @@ function create(canvas){
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);
     if(u32){gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,I.subarray(0,ni),gl.DYNAMIC_DRAW);gl.drawElements(gl.TRIANGLES,ni,gl.UNSIGNED_INT,0);}
     else{const I16=new Uint16Array(I.subarray(0,ni));gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,I16,gl.DYNAMIC_DRAW);gl.drawElements(gl.TRIANGLES,ni,gl.UNSIGNED_SHORT,0);}
+    for(const a of ['P','N','C','F']) gl.disableVertexAttribArray(loc[a]);
+    if(body&&!flat) bodyDraw(body,new Float32Array(Rm),new Float32Array(view.target||[0,.9,0]),d,F*2/W,F*2/H);
   }
   return {draw,gl};
 }
