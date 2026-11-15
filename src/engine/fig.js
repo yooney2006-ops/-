@@ -841,7 +841,10 @@ function viewer(canvas,ex,opts={}){
   if(glr&&opts.body!==false) BODY.load().then(()=>{ dirty=true; if(alive&&!playing) frame(phase(tAcc)); });
   // 템포: 단축성(들어 올리는) 구간은 빠르게 출발해 정점에서 감속, 신장성(내리는) 구간은 더 길게 버티며 내린다.
   // 케이블·머신 고립 운동은 정점 수축에서 조금 더 멈춘다.
-  const ECC_AB=['squat','lunge','legpress','pushup','dip'].includes(ex.anim.p)||(ex.anim.p==='hinge'&&!['dl','sumo',undefined].includes((ex.anim.o||{}).kind));
+  // 시작 자세(A)→끝 자세(B)가 '내리는(신장성)' 구간인 운동. 전 운동의 A→B 높이 변화를 표로 뽑아 확인한 규칙:
+  // 스쿼트·런지·푸시업·딥스·RDL·굿모닝·롤아웃은 A가 선 자세, 그 밖(스텝업·케틀벨 스윙·레그프레스 포함)은 A가 늘어난 시작 자세
+  const ak=(ex.anim.o||{}).kind, ap=ex.anim.p;
+  const ECC_AB=ap==='squat'||ap==='pushup'||ap==='dip'||(ap==='lunge'&&ak!=='stepup')||(ap==='hinge'&&['rdl','sldl','dbrdl','gm'].includes(ak))||(ap==='ab'&&ak==='rollout');
   const iso=!ex.compound&&/머신|케이블/.test(ex.cat||'');
   const tCon=1.05,tEcc=1.55,hPeak=iso?.5:.3,hStretch=.22;
   // A→B가 신장성이면 [A 유지, 내리기, B(최저점) 유지, 올리기] 순서
