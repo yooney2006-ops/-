@@ -73,7 +73,15 @@ for (const w of [360, 420, 1280]) { await page.setViewportSize({ width: w, heigh
   for (const tab of ["workout", "stats", "plan"]) { await page.click(`[data-tab=${tab}]`); await page.waitForTimeout(150);
     const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth); check(`${w}px ${tab}: 가로 넘침 없음`, over <= 1, `${over}px`); } }
 await page.setViewportSize({ width: 420, height: 900 });
+// 검색: 초성·오타·영문, 근거 시트
 await page.click("[data-tab=guide]");
+for (const [q, want] of [["ㅂㅊㅍㄹㅅ", "바벨 벤치프레스"], ["밴치프레스", "바벨 벤치프레스"], ["squat", "바벨 백스쿼트"], ["턱걸이", "풀업(턱걸이)"]]) {
+  await page.fill("#guideQ", q); await page.waitForTimeout(120);
+  check(`가이드 검색 "${q}" → ${want}`, (await page.textContent("#guideList")).includes(want)); }
+await page.fill("#guideQ", "");
+await page.evaluate(() => window.gymlog.A.why({ dataset: { rule: "vol_week,protein_cut" } }));
+check("근거 시트에 규칙·논문·DOI가 보임", await page.evaluate(() => { const t = document.getElementById("sheet").innerHTML; return /10–20세트/.test(t) && /doi\.org/.test(t) && /검증|근거 연결됨/.test(t); }));
+await page.evaluate(() => window.gymlog.A.closeSheet());
 await page.fill("#gAsk", "스쿼트 무릎");
 await page.press("#gAsk", "Enter");
 await page.waitForTimeout(800);

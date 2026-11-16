@@ -1,0 +1,13 @@
+{"_주의": "가져오기 테스트용 가짜 표본. USDA JSON과 같은 구조지만 수치는 실제 값이 아니며 앱 데이터로 쓰지 않는다.",
+ "FoundationFoods": [
+  {"fdcId": 1, "description": "Test food A, raw", "foodCategory": {"description": "Test"}, "foodNutrients": [
+    {"nutrient": {"number": "208", "unitName": "kcal"}, "amount": 100}, {"nutrient": {"number": "203", "unitName": "g"}, "amount": 10.04},
+    {"nutrient": {"number": "204", "unitName": "g"}, "amount": 2}, {"nutrient": {"number": "205", "unitName": "g"}, "amount": 10.5}, {"nutrient": {"number": "307", "unitName": "mg"}, "amount": 55}]},
+  {"fdcId": 2, "description": "Test food B (Atwater energy only)", "foodNutrients": [
+    {"nutrient": {"number": "208", "unitName": "kJ"}, "amount": 418}, {"nutrient": {"number": "957", "unitName": "kcal"}, "amount": 99},
+    {"nutrient": {"number": "203", "unitName": "g"}, "amount": 1}, {"nutrient": {"number": "204", "unitName": "g"}, "amount": 1}, {"nutrient": {"number": "205", "unitName": "g"}, "amount": 20}, {"nutrient": {"number": "269", "unitName": "g"}, "amount": 12}]},
+  {"fdcId": 3, "description": "Test food C, missing fat", "foodNutrients": [
+    {"nutrient": {"number": "208", "unitName": "kcal"}, "amount": 50}, {"nutrient": {"number": "203", "unitName": "g"}, "amount": 1}, {"nutrient": {"number": "205", "unitName": "g"}, "amount": 10}]},
+  {"fdcId": 4, "description": "test food a, RAW", "foodNutrients": [
+    {"nutrient": {"number": "208", "unitName": "kcal"}, "amount": 999}, {"nutrient": {"number": "203", "unitName": "g"}, "amount": 9}, {"nutrient": {"number": "204", "unitName": "g"}, "amount": 9}, {"nutrient": {"number": "205", "unitName": "g"}, "amount": 9}]}
+ ]}

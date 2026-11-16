@@ -1,5 +1,8 @@
 // @ts-nocheck — 아티팩트 원본에서 그대로 옮긴 코드. 타입은 점진적으로 붙인다.
 import { viewInsights, initHeatMaps } from "./insights";
+import { evidenceSectionHtml, dietRuleHtml, exRuleIds } from "./evidence";
+import { searchExercises } from "../platform/kb";
+import { logMiss } from "../platform/search";
 import { EXMAP, PARTS, WD } from "./catalog";
 import { GOALS, calcTargets, sumMeals } from "./goals";
 import { openSheet } from "./sheets";
@@ -76,7 +79,8 @@ export function viewFood(){
   // 주간 차트
   html+=`<section class="card"><div class="spread"><h2>최근 7일 칼로리</h2><span class="muted xs">점선 = 목표 ${T.kcal.toLocaleString()} kcal</span></div>${weekKcalChart(T)}${weekProtein(T)}</section>`;
   // AI 분석
-  html+=`<section class="card"><div class="spread"><h2>Claude 식단 코멘트</h2><button class="btn sm ai" data-act="aiFood" ${ui.aiBusy?"disabled":""}>오늘 식단 분석 받기</button></div>
+  html+=dietRuleHtml(T,t,(dd.meals||[]).length);
+  html+=`<section class="card"><div class="spread"><h2>Claude 식단 코멘트</h2><button class="btn sm ai" data-act="aiFood" ${ui.aiBusy?"disabled":""}>더 자세한 분석 받기</button></div>
     ${dd.analysis?`<div class="ai-out" style="margin-top:10px" id="aiFoodOut">${md(dd.analysis)}</div>`:`<p class="muted small" style="margin:8px 0 0" id="aiFoodOut">목표 대비 부족하거나 넘친 영양소, 남은 끼니에 먹으면 좋은 음식을 알려줘요.</p>`}</section>`;
   return html;
 }
@@ -135,13 +139,13 @@ export function recoveryCards(){
   let ins="";
   // 회복도
   const rec=recovery(ui.date);
-  ins+=`<section class="card"><div class="spread"><h2>근육 회복도</h2><span class="muted xs">세트·RIR·시간 기반 추정</span></div><div class="rec" style="margin-top:8px">`;
+  ins+=`<section class="card"><div class="spread"><h2>근육 회복도</h2><button class="why" data-act="why" data-rule="recovery,deload">근거</button></div><div class="rec" style="margin-top:8px">`;
   MGROUP.forEach(([g])=>{const {r:v,h}=rec[g]; const col=v>=85?"var(--good)":v>=55?"var(--warn)":"var(--bad)";
     ins+=`<div class="m"><b>${g} <span class="num" style="float:right;color:${col}">${v}%</span></b><div class="bar"><i style="width:${v}%;background:${col}"></i></div>${v<90?`<span class="xs muted">약 ${h>=120?"120+":h}시간 후 회복</span>`:""}</div>`;});
   ins+=`</div><p class="xs muted" style="margin:8px 0 0">기본 48시간에 걸쳐 회복 · RIR 0은 +24h, RIR 1은 +12h, 큰 근육은 +12h (Morán-Navarro 2017, Goulart 2021) · 추정치예요</p><div class="row" style="margin-top:10px"><button class="btn sm" data-act="genRecovery">회복된 부위로 오늘 운동 만들기</button></div></section>`;
   // 이번 주 부위별 세트 (Hevy·RP 가이드: 부위당 주 10~20세트)
   const ws=weekSets(ui.date); const wmax=Math.max(24,...Object.values(ws));
-  ins+=`<section class="card"><div class="spread"><h2>이번 주 부위별 세트</h2><span class="muted xs">초록 띠 = 근성장 권장 10~20세트</span></div><div style="display:grid;gap:6px;margin-top:10px">`;
+  ins+=`<section class="card"><div class="spread"><h2>이번 주 부위별 세트</h2><button class="why" data-act="why" data-rule="vol_week,vol_fractional,freq,vol_session">근거 · 10~20세트</button></div><div style="display:grid;gap:6px;margin-top:10px">`;
   const wf=weekFreq(ui.date);
   MGROUP.forEach(([g])=>{const v=ws[g]||0;const col=v<10?"var(--warn)":v<=20?"var(--good)":"var(--accent)";
     ins+=`<div class="ms" style="grid-template-columns:72px 1fr 44px 40px"><span>${g}</span><div class="bar"><span class="band" style="left:${10/wmax*100}%;width:${10/wmax*100}%"></span><i style="width:${Math.min(100,v/wmax*100)}%;background:${col};position:relative"></i></div><span class="num" style="text-align:right">${r1(v)}</span><span class="xs muted" style="text-align:right">${wf[g]||0}회</span></div>`;});
@@ -157,7 +161,7 @@ export function exCard(it,i,mode){
   let h=`<section class="card ex"><div class="ex-head"><div><div class="ex-title">${esc(it.name)}</div><div class="row xs muted" style="margin-top:2px"><span class="chip">${esc(exPart(it))}</span>${e&&e.stretch?`<span class="chip badge-s" title="${esc(e.stretch.note)}">스트레치</span>`:""}${it.rirT?`<span class="chip">목표 RIR ${esc(it.rirT)}</span>`:""}${e?`<span>${esc(e.equip)}</span>`:""}${best?`<span>· 추정 1RM 최고 <b class="num">${r1(best)}</b>kg</span>`:""}</div></div>
     <div class="row"><button class="btn sm ghost" data-act="tips" data-ex="${esc(it.exId||"")}" data-name="${esc(it.name)}">팁</button>${log?`<button class="btn sm ghost" data-act="swap" data-i="${i}" data-target="${mode}">교체</button>`:""}<button class="btn sm icon ghost" data-act="moveEx" data-i="${i}" data-d="-1" data-target="${mode}" aria-label="위로">↑</button><button class="btn sm icon ghost" data-act="delEx" data-i="${i}" data-target="${mode}" aria-label="삭제">✕</button></div></div>`;
   if(log&&pr){ h+=`<div class="prevrow"><span class="xs muted">지난 기록 ${pr.date.slice(5).replace("-","/")} · ${pr.sets.map(s=>t==="w"?`${s.w}×${s.r}`:`${s.r}${unitR}`).join(", ")}</span><button class="btn sm" data-act="loadPrev" data-i="${i}">불러오기</button></div>`; }
-  if(sug){ h+=`<div class="hint" style="margin-top:6px">추천: ${esc(sug.msg)} <button class="btn sm" data-act="applySug" data-i="${i}" data-w="${sug.w}" data-r="${sug.r}">적용</button></div>`; }
+  if(sug){ h+=`<div class="hint" style="margin-top:6px">추천: ${esc(sug.msg)} <button class="why" data-act="why" data-rule="overload,rir">근거</button> <button class="btn sm" data-act="applySug" data-i="${i}" data-w="${sug.w}" data-r="${sug.r}">적용</button></div>`; }
   const lg=log&&t!=="t"?" lg":"";
   h+=`<div class="sets"><div class="set hdr${lg}"><span style="text-align:center">세트</span><span style="text-align:center">${t==="w"?"무게(kg)":t==="t"?"—":"추가중량"}</span><span style="text-align:center">${t==="t"?"시간(분)":"횟수"}</span>${lg?`<span style="text-align:center" title="남은 반복 수: 몇 개 더 할 수 있었나">RIR</span>`:""}<span style="text-align:center">${log?"완료":""}</span></div>`;
   (it.sets||[]).forEach((s,k)=>{
@@ -260,7 +264,11 @@ export function viewPlan(){
 
 /* ---------- 가이드 ---------- */
 export const CATS=["전체","머신","프리웨이트","케이블","맨몸","유산소"];
-export function guideFilter(){const q=ui.guideQ.trim().replace(/\s/g,"");return EX.filter(e=>(!ui.guideStretch||e.stretch)&&(ui.guideBrand==="전체"||(ui.guideBrand==="일반"?!e.brand:e.brand===ui.guideBrand))&&(ui.guidePart==="전체"||e.part===ui.guidePart)&&(ui.guideCat==="전체"||e.cat===ui.guideCat)&&(!q||e.name.replace(/\s/g,"").includes(q)||e.muscles.includes(q)||e.equip.replace(/\s/g,"").includes(q)||(e.en||"").toLowerCase().replace(/\s/g,"").includes(q.toLowerCase())));}
+export function guideFilter(){const q=ui.guideQ.trim();
+  // 검색어가 있으면 별칭·초성·오타·한영 검색으로 후보를 뽑고, 그 위에 필터를 건다
+  const list=(q?searchExercises(q):EX).filter(e=>(!ui.guideStretch||e.stretch)&&(ui.guideBrand==="전체"||(ui.guideBrand==="일반"?!e.brand:e.brand===ui.guideBrand))&&(ui.guidePart==="전체"||e.part===ui.guidePart)&&(ui.guideCat==="전체"||e.cat===ui.guideCat));
+  if(q&&!list.length) logMiss("exercise",q);
+  return list;}
 export function viewGuide(){
   const list=guideFilter();
   let html=`<section class="card"><input type="search" placeholder="운동·근육·기구로 검색 (예: 광배, 스미스, 햄스트링)" value="${esc(ui.guideQ)}" data-inp="guideQ" id="guideQ">
@@ -268,8 +276,8 @@ export function viewGuide(){
   <div class="row" style="margin-top:6px"><span class="xs muted" style="width:34px">기구</span>${CATS.map(p=>`<button class="chip ${ui.guideCat===p?"on":""}" data-act="guideCat" data-p="${p}">${p}</button>`).join("")}<button class="chip badge-s ${ui.guideStretch?"on":""}" data-act="guideStretch">스트레치 강조만</button></div>
   <div class="row" style="margin-top:6px"><span class="xs muted" style="width:34px">브랜드</span>${["전체",...BRANDS,"일반"].map(p=>`<button class="chip ${ui.guideBrand===p?"on":""}" data-act="guideBrand" data-p="${p}">${p}</button>`).join("")}</div>
   <p class="xs muted" style="margin:8px 0 0" id="guideCount">${list.length}개 운동 · 누르면 3D 동작과 타깃 근육을 볼 수 있어요</p></section>`;
-  html+=`<section class="card"><div class="spread"><h2>근성장 연구 근거</h2><span class="xs muted">${EVIDENCE.length}개 · 앱 계산에 반영됨</span></div><div style="margin-top:6px">${EVIDENCE.map(v=>`<details class="ev"><summary>${esc(v.t)}</summary><div class="small" style="margin-top:6px;display:grid;gap:6px"><div class="xs muted">${esc(v.s)}</div><div><b>연구 결과</b> · ${esc(v.f)}</div><div><b>앱 적용</b> · ${esc(v.a)}</div><a class="xs" href="${v.u}" target="_blank" rel="noopener">원문 보기 ↗</a></div></details>`).join("")}</div></section>`;
-  html+=`<section class="card"><h2>Claude에게 운동 질문</h2><div class="row" style="margin-top:8px;flex-wrap:nowrap"><input type="text" id="gAsk" placeholder="예: 벤치프레스할 때 어깨가 아파요 / 불가리안 스플릿 스쿼트 자세"><button class="btn primary ai" data-act="aiAsk" ${ui.aiBusy?"disabled":""}>질문</button></div><div id="gAskOut"></div></section>`;
+  html+=evidenceSectionHtml();
+  html+=`<section class="card"><h2>운동 질문</h2><span class="xs muted">자체 근거 DB에서 먼저 찾고, Claude 답변을 덧붙여요</span><div class="row" style="margin-top:8px;flex-wrap:nowrap"><input type="text" id="gAsk" placeholder="예: 벤치프레스할 때 어깨가 아파요 / 불가리안 스플릿 스쿼트 자세"><button class="btn primary ai" data-act="aiAsk" ${ui.aiBusy?"disabled":""}>질문</button></div><div id="gAskOut"></div></section>`;
   html+=`<div id="guideList">${guideCards(list)}</div>`;
   return html;
 }
@@ -311,7 +319,7 @@ export function exDetail(id,fromName){
   if(h.length){const b=h.reduce((a,x)=>x.best>a.best?x:a,h[0]);
     html+=`<div class="card" style="margin-top:12px;background:var(--surface-2)"><div class="spread"><h3>내 기록</h3>${e.type==="w"?`<span class="small">추정 1RM 최고 <b class="num">${r1(b.best)}</b>kg</span>`:""}</div>${e.type==="w"?histChart(h):""}
     <div class="small" style="margin-top:6px;display:grid;gap:2px">${h.slice(-5).reverse().map(x=>`<div class="spread"><span class="muted">${x.d.slice(5).replace("-","/")}</span><span class="num">${e.type==="w"?`${x.top.w}kg × ${x.top.r}`:`${x.top.r}${unit}`} · ${x.n}세트${e.type==="w"?` · 볼륨 ${r0(x.vol).toLocaleString()}kg`:""}</span></div>`).join("")}</div></div>`;}
-  html+=`<div class="row" style="margin-top:12px"><button class="btn primary" data-act="addExToday" data-id="${e.id}">${ui.date===ymd(new Date())?"오늘":"이 날"} 운동에 추가</button><button class="btn ai" data-act="aiTip" data-name="${esc(e.name)}">Claude에게 더 자세히</button></div><div id="tipOut"></div>`;
+  html+=`<div class="row" style="margin-top:12px"><button class="btn primary" data-act="addExToday" data-id="${e.id}">${ui.date===ymd(new Date())?"오늘":"이 날"} 운동에 추가</button><button class="btn" data-act="why" data-rule="${exRuleIds(e)}">권장값의 근거</button></div><div id="tipOut"></div>`;
   openSheet(html);
   const cv=document.getElementById("figCanvas");
   try{ ui.fig=FIG.viewer(cv,e,{overlay:true}); if(ui.slow) ui.fig.setSpeed(.5); }catch(err){ cv.outerHTML=`<p class="small muted" style="padding:12px">3D 동작을 그리지 못했어요.</p>`; }

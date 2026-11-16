@@ -9,6 +9,8 @@ import { BRANDS, EX, MUSCLE_KO } from "../data/exercises.js";
 import { FOOD_DB } from "../data/foods";
 import { FIG } from "../engine/fig.js";
 import { getAIToken } from "../platform/ai";
+import { getExtraFoods, searchFoods, searchExercises } from "../platform/kb";
+import { logMiss } from "../platform/search";
 
 /* 시트 (모달)
    ============================================================ */
@@ -37,11 +39,11 @@ export function drawFoodSheet(){
   openSheet(h);
   if(st.mode==="search"){ const q=document.getElementById("foodQ"); q.focus(); q.setSelectionRange(q.value.length,q.value.length); }
 }
-export function allFoods(){ return [...(S.main.customFoods||[]).map(f=>({...f,custom:true})),...FOOD_DB]; }
+export function allFoods(){ return [...(S.main.customFoods||[]).map(f=>({...f,custom:true})),...FOOD_DB,...getExtraFoods()]; }
 export function foodResults(){
   const q=ui.sheet.q.trim().replace(/\s/g,"");
   let list=allFoods();
-  if(q) list=list.filter(f=>f.name.replace(/\s/g,"").includes(q)||(f.cat||"").includes(q));
+  if(q){ list=searchFoods(S.main.customFoods||[],ui.sheet.q); if(!list.length) logMiss("food",ui.sheet.q); }  // 별칭·초성·오타·한영 검색
   else{ // 최근 먹은 것 우선
     const recent=[]; Object.keys(S.days).sort().reverse().slice(0,14).forEach(d=>(S.days[d].meals||[]).forEach(m=>{ if(!recent.find(r=>r.name===m.name)) recent.push(m); }));
     list=[...recent.slice(0,8).map(r=>({...r,recent:true})),...list.filter(f=>!recent.slice(0,8).find(r=>r.name===f.name))];
@@ -57,7 +59,7 @@ export function foodPick(){
 }
 export function parsedList(){
   const L=ui.sheet.parsed; if(!L||!L.length) return "";
-  return `<div class="results">${L.map((f,i)=>`<div class="res" style="cursor:default"><span><b>${esc(f.name)}</b> <span class="muted xs">${esc(f.serving||"")} × ${f.qty||1}</span><div class="pcf"><span class="c">탄 ${r1(f.carb*(f.qty||1))}</span><span class="p">단 ${r1(f.protein*(f.qty||1))}</span><span class="f">지 ${r1(f.fat*(f.qty||1))}</span></div></span><span class="row"><span class="num small">${r0(f.kcal*(f.qty||1))} kcal</span><button class="btn sm icon ghost" data-act="dropParsed" data-i="${i}" aria-label="빼기">✕</button></span></div>`).join("")}</div>${ui.sheet.note?`<p class="xs muted">${esc(ui.sheet.note)}</p>`:""}<div class="row" style="margin-top:8px"><button class="btn primary" data-act="addParsed">${esc(ui.sheet.meal)}에 모두 추가</button></div>`;
+  return `<div class="results">${L.map((f,i)=>`<div class="res" style="cursor:default"><span><b>${esc(f.name)}</b> <span class="muted xs">${esc(f.serving||"")} × ${f.qty||1}${f.src==="db"?" · DB":f.check?(f.check.ok?" · AI 추정(검증 통과)":" · AI 추정 · 확인 필요: "+esc(f.check.reasons.join(", "))):""}</span><div class="pcf"><span class="c">탄 ${r1(f.carb*(f.qty||1))}</span><span class="p">단 ${r1(f.protein*(f.qty||1))}</span><span class="f">지 ${r1(f.fat*(f.qty||1))}</span></div></span><span class="row"><span class="num small">${r0(f.kcal*(f.qty||1))} kcal</span><button class="btn sm icon ghost" data-act="dropParsed" data-i="${i}" aria-label="빼기">✕</button></span></div>`).join("")}</div>${ui.sheet.note?`<p class="xs muted">${esc(ui.sheet.note)}</p>`:""}<div class="row" style="margin-top:8px"><button class="btn primary" data-act="addParsed">${esc(ui.sheet.meal)}에 모두 추가</button></div>`;
 }
 export const NUTRI_SCHEMA=`JSON만 출력: {"items":[{"name":"음식명(한국어)","serving":"1회 제공량 표기 예: 1공기, 1개, 100g","grams":숫자,"kcal":숫자,"carb":숫자,"protein":숫자,"fat":숫자,"sugar":숫자,"sodium":숫자(mg),"qty":먹은 제공량 개수(숫자, 반이면 0.5)}],"note":"추정 근거 한 줄"}. 모든 영양값은 1회 제공량(qty=1) 기준.`;
 export function normFood(x){ const n=k=>Math.max(0,+x[k]||0); return {name:String(x.name||"음식").slice(0,40),serving:String(x.serving||"1회").slice(0,20),grams:n("grams"),kcal:n("kcal"),carb:n("carb"),protein:n("protein"),fat:n("fat"),sugar:n("sugar"),sodium:n("sodium"),qty:Math.max(0.25,+x.qty||1)}; }
@@ -70,7 +72,8 @@ export function exSheet(target, swapIdx=null){
 export function exListHtml(){
   const st=ui.sheet; const q=st.q.trim().replace(/\s/g,"");
   const br=st.brand||"전체";
-  const list=EX.filter(e=>(br==="전체"||(br==="일반"?!e.brand:e.brand===br))&&(st.part==="전체"||e.part===st.part)&&(!q||e.name.replace(/\s/g,"").includes(q)||e.muscles.includes(q)||e.equip.replace(/\s/g,"").includes(q)||(e.en||"").toLowerCase().replace(/\s/g,"").includes(q.toLowerCase())));
+  const list=(q?searchExercises(st.q):EX).filter(e=>(br==="전체"||(br==="일반"?!e.brand:e.brand===br))&&(st.part==="전체"||e.part===st.part));
+  if(q&&!list.length) logMiss("exercise",st.q);
   return list.map(e=>`<div class="res ${st.preview===e.id?"sel":""}" style="cursor:default;align-items:center"><button class="exrow" data-act="previewEx" data-id="${e.id}" aria-label="${esc(e.name)} 미리보기"><span><b>${esc(e.name)}</b> <span class="muted xs">${e.part} · ${e.brand?esc(e.equip):e.cat}</span>${e.stretch?` <span class="chip badge-s" style="font-size:11px">스트레치</span>`:""}<br><span class="xs" style="color:var(--muted)">${e.prim.map(k=>MUSCLE_KO[k]).join(", ")}</span></span></button><button class="btn sm" data-act="pickEx" data-id="${e.id}">${st.swapIdx!=null?"교체":"추가"}</button></div>`).join("")
    +(st.q.trim()&&!EX.some(e=>e.name===st.q.trim())?`<button class="res" data-act="pickCustomEx"><span>목록에 없는 운동 <b>"${esc(st.q.trim())}"</b> 추가 (${st.part==="전체"?"기타":st.part})</span></button>`:"");
 }
@@ -108,7 +111,7 @@ export function profileSheet(){
   <label class="f" style="grid-column:span 2">활동량<select id="pAct">${ACTS.map(([v,l])=>`<option value="${v}" ${p.activity==v?"selected":""}>${l}</option>`).join("")}</select></label>
   <label class="f" style="grid-column:span 3">목표<select id="pGoal">${Object.entries(GOALS).map(([k,l])=>`<option value="${k}" ${p.goal===k?"selected":""}>${l}</option>`).join("")}</select></label></div>
   <div class="card" style="margin-top:12px;background:var(--surface-2)"><div class="small muted">자동 계산 · 기초대사량 <b class="num">${T.bmr}</b> · 유지 칼로리 <b class="num">${T.tdee}</b> kcal</div>
-  <div class="small" style="margin-top:4px">감량 −450kcal, 벌크업 +300kcal · 단백질 체중×${p.goal==="keep"?"1.6":p.goal==="cut"?"2.2":"1.8"}g · 지방 25%</div><div class="xs muted" style="margin-top:4px">단백질 근거: 하루 약 1.6g/kg 이상에서는 근육 증가 효과가 평탄해져요 (Morton 2018, 상한 약 2.2g/kg)</div></div>
+  <div class="small" style="margin-top:4px"><button class="why" data-act="why" data-rule="protein_keep,protein_bulk,protein_cut,kcal_cut,kcal_bulk,bmr" style="float:right">근거</button>감량 −450kcal, 벌크업 +300kcal · 단백질 체중×${p.goal==="keep"?"1.6":p.goal==="cut"?"2.2":"1.8"}g · 지방 25%</div><div class="xs muted" style="margin-top:4px">단백질 근거: 하루 약 1.6g/kg 이상에서는 근육 증가 효과가 평탄해져요 (Morton 2018, 상한 약 2.2g/kg)</div></div>
   <label class="row small" style="margin-top:10px"><input type="checkbox" id="pOv" ${o?"checked":""} style="width:auto"> 목표 수치 직접 지정</label>
   <div class="grid2" style="margin-top:6px"><label class="f">칼로리<input type="number" id="oK" value="${T.kcal}"></label><label class="f">탄수화물 g<input type="number" id="oC" value="${T.carb}"></label><label class="f">단백질 g<input type="number" id="oP" value="${T.protein}"></label><label class="f">지방 g<input type="number" id="oF" value="${T.fat}"></label></div>
   <div class="row" style="margin-top:12px"><button class="btn primary" data-act="saveProfile">저장</button></div>

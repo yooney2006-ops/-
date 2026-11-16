@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:e2e": "node tests/e2e/smoke.mjs",
     "render": "node tests/render/revshot.mjs",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:ai": "node tests/e2e/ai-calls.mjs",
+    "test:import": "python3 tools/db/test_import.py"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

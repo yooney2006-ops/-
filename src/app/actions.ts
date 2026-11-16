@@ -8,7 +8,10 @@ import { cloneItems, doneSets, e1rm, exInfo, exPart, exType, feedbackHtml, group
 import { addDays, day, esc, md, peekDay, r0, r1, toast, uid, wIdx, ymd } from "./util";
 import { MGROUP, bestE1rmBefore, defaultMeal, exDetail, guideCards, guideFilter, lastWeightDate, render } from "./views";
 import { EX } from "../data/exercises.js";
-import { aiErr, askJSON, askText, setAIToken } from "../platform/ai";
+import { aiErr, setAIToken } from "../platform/ai";
+import { cachedJSON, cachedText, photoJSON, ingestAIFoods, logHit } from "../platform/aiflow";
+import { resolveFoodText } from "../platform/kb";
+import { whySheet, kbAnswerHtml } from "./evidence";
 import { countDays, downloadJSON, parseBackup, toBackup } from "../platform/backup";
 
 /* 액션
@@ -19,6 +22,7 @@ export const A={
   today(){ ui.date=ymd(new Date()); render(); },
   goDate(el){ ui.date=el.dataset.date; render(); },
   openProfile(){ profileSheet(); },
+  why(el){ whySheet(el.dataset.rule.split(",")); },
   async exportData(){ await flush(); downloadJSON(`gymlog-${ymd(new Date())}.json`, toBackup(S)); toast("백업 파일을 내려받았어요"); },
   importData(){ document.getElementById("importIn").click(); },
   saveAIToken(){ setAIToken(document.getElementById("aiToken").value.trim()); toast("AI 접속 암호를 저장했어요"); },
@@ -41,9 +45,14 @@ export const A={
   async aiLookup(){ ui.sheet.mode="ai"; ui.sheet.aiText=ui.sheet.q+" 1인분"; drawFoodSheet(); A.aiParse(); },
   async aiParse(){
     const txt=(document.getElementById("aiFoodIn")?.value||"").trim(); if(!txt) return toast("먹은 음식을 적어 주세요");
-    ui.sheet.aiText=txt; const out=document.getElementById("aiParseOut"); out.innerHTML=`<p class="muted small">Claude가 분석 중…</p>`; ui.aiBusy=true;
-    try{ const r=await askJSON(`너는 한국 영양사다. 사용자가 먹은 음식 설명을 음식 단위로 나누고, 식품의약품안전처 식품영양성분 DB나 일반적인 한국 제품·프랜차이즈 영양성분표 기준으로 1회 제공량 영양성분을 추정하라. 브랜드 제품이면 그 제품 표기를 우선한다.\n${NUTRI_SCHEMA}\n\n사용자 입력: ${txt}`);
-      ui.sheet.parsed=(r.items||[]).map(normFood).map(f=>({...f,src:"ai"})); ui.sheet.note=r.note||""; }
+    ui.sheet.aiText=txt; const out=document.getElementById("aiParseOut");
+    // 1차: 자체 DB에서 음식과 수량을 모두 찾으면 AI를 부르지 않는다
+    const local=resolveFoodText(txt,S.main.customFoods||[]);
+    if(local){ logHit("food_text","db"); ui.sheet.parsed=local.map(x=>({...normFood({...x.food,qty:x.qty}),src:"db"})); ui.sheet.note="자체 DB에서 찾았어요 (AI 호출 없음)"; drawFoodSheet(); return; }
+    out.innerHTML=`<p class="muted small">DB에 없는 음식이 있어 Claude가 분석 중…</p>`; ui.aiBusy=true;
+    try{ const r=await cachedJSON("food_text",txt,`너는 한국 영양사다. 사용자가 먹은 음식 설명을 음식 단위로 나누고, 식품의약품안전처 식품영양성분 DB나 일반적인 한국 제품·프랜차이즈 영양성분표 기준으로 1회 제공량 영양성분을 추정하라. 브랜드 제품이면 그 제품 표기를 우선한다.\n${NUTRI_SCHEMA}\n\n사용자 입력: ${txt}`);
+      const checked=await ingestAIFoods((r.items||[]).map(normFood),S.main.customFoods||[],"text",txt);
+      ui.sheet.parsed=checked.map(f=>({...f,src:"ai"})); ui.sheet.note=r.note||""; }
     catch(e){ ui.sheet.parsed=null; out.innerHTML=`<p class="small" style="color:var(--bad)">${esc(aiErr(e))}</p>`; ui.aiBusy=false; return; }
     ui.aiBusy=false; drawFoodSheet();
   },
@@ -52,15 +61,16 @@ export const A={
     const note=document.getElementById("photoNote").value; const out=document.getElementById("aiParseOut"); out.innerHTML=`<p class="muted small">사진을 읽는 중…</p>`; ui.aiBusy=true;
     try{
       const prompt=`사진이 영양성분표면 표기 값을 그대로 읽고(총 내용량과 1회 제공량 구분), 음식 사진이면 음식과 양을 추정해 영양성분을 계산하라. 메모: ${note||"없음"}\n${NUTRI_SCHEMA}`;
-      const r = await askJSON(prompt,{images:[f]});
-      ui.sheet.parsed=(r.items||[]).map(normFood).map(x=>({...x,src:"ai"})); ui.sheet.note=r.note||"";
+      const r = await photoJSON(prompt,[f]);
+      const checked=await ingestAIFoods((r.items||[]).map(normFood),S.main.customFoods||[],"photo",note);
+      ui.sheet.parsed=checked.map(x=>({...x,src:"ai"})); ui.sheet.note=r.note||"";
     }catch(e){ out.innerHTML=`<p class="small" style="color:var(--bad)">${esc(aiErr(e))}</p>`; ui.aiBusy=false; return; }
     ui.aiBusy=false; drawFoodSheet();
   },
   dropParsed(el){ ui.sheet.parsed.splice(+el.dataset.i,1); drawFoodSheet(); },
   addParsed(){
-    const d=day(); ui.sheet.parsed.forEach(f=>{ d.meals.push({...f,id:uid(),meal:ui.sheet.meal}); if(!(S.main.customFoods||[]).find(c=>c.name===f.name)){ const {qty,...base}=f; (S.main.customFoods=S.main.customFoods||[]).unshift(base); } });
-    S.main.customFoods=S.main.customFoods.slice(0,150);
+    const d=day(); ui.sheet.parsed.forEach(f=>{ const {check,...m}=f; d.meals.push({...m,id:uid(),meal:ui.sheet.meal}); });
+    S.main.customFoods=(S.main.customFoods||[]).slice(0,150);
     markDirty(dayKey(ui.date)); markDirty("main"); closeSheet(); render(); toast("추가했어요. 다음부터는 검색에서 바로 나와요");
   },
   manualAdd(){
@@ -76,7 +86,7 @@ export const A={
     const w=(dd.workout?.items||[]).filter(it=>doneSets(it).length).map(it=>it.name).join(", ")||"없음";
     ui.aiBusy=true; out.outerHTML=`<div class="ai-out" style="margin-top:10px" id="aiFoodOut">분석 중…</div>`;
     try{
-      const txt=await askText(`너는 헬스 트레이너 겸 영양사다. 한국어 반말 말고 친근한 존댓말로, 6~9줄 이내로 답하라. 마크다운 제목 없이 **굵게**만 사용.
+      const txt=await cachedText("diet_coach",[ui.date,p.goal,p.weight,T.kcal,r0(t.kcal),r0(t.carb),r0(t.protein),r0(t.fat),w,(dd.meals||[]).map(m=>m.name+"x"+m.qty).join("/")].join("|"),`너는 헬스 트레이너 겸 영양사다. 한국어 반말 말고 친근한 존댓말로, 6~9줄 이내로 답하라. 마크다운 제목 없이 **굵게**만 사용.
 사용자: ${p.sex==="m"?"남":"여"} ${p.age}세 ${p.height}cm ${p.weight}kg, 목표 ${GOALS[p.goal]}.
 오늘 목표: ${T.kcal}kcal, 탄 ${T.carb}g, 단 ${T.protein}g, 지 ${T.fat}g.
 오늘 섭취 합계: ${r0(t.kcal)}kcal, 탄 ${r0(t.carb)}g, 단 ${r0(t.protein)}g, 지 ${r0(t.fat)}g, 당 ${r0(t.sugar)}g, 나트륨 ${r0(t.sodium)}mg.
@@ -140,7 +150,7 @@ export const A={
   tips(el){ tipsSheet(el.dataset.ex,el.dataset.name); },
   async aiTip(el){
     const out=document.getElementById("tipOut"); out.innerHTML=`<div class="ai-out" style="margin-top:10px">불러오는 중…</div>`;
-    try{ await askText(`헬스 트레이너로서 "${el.dataset.name}" 운동을 설명하라. 한국어 존댓말, 마크다운 제목 없이 **굵게**만. 1) 타깃 근육 2) 셋업 3) 동작 포인트 3~4개 4) 흔한 실수와 교정 5) 초보 추천 세트×횟수. 15줄 이내.`, t=>{ out.innerHTML=`<div class="ai-out" style="margin-top:10px">${md(t)}</div>`; }); }
+    try{ await cachedText("ex_tip",el.dataset.name,`헬스 트레이너로서 "${el.dataset.name}" 운동을 설명하라. 한국어 존댓말, 마크다운 제목 없이 **굵게**만. 1) 타깃 근육 2) 셋업 3) 동작 포인트 3~4개 4) 흔한 실수와 교정 5) 초보 추천 세트×횟수. 15줄 이내.`, t=>{ out.innerHTML=`<div class="ai-out" style="margin-top:10px">${md(t)}</div>`; }); }
     catch(e){ out.innerHTML=`<p class="small" style="color:var(--bad)">${esc(aiErr(e))}</p>`; }
   },
   /* 플랜 */
@@ -154,7 +164,7 @@ export const A={
     const o=readReq(); ui.reqLevel=o.level; const out=document.getElementById("aiPlanOut"); out.innerHTML=`<p class="muted small" style="margin-top:10px">Claude가 플랜을 짜는 중… (10~30초)</p>`; ui.aiBusy=true;
     const p=S.main.profile; const rec=Object.keys(S.days).sort().slice(-14).flatMap(d=>(S.days[d].workout?.items||[]).filter(it=>doneSets(it).length).map(it=>{const s=doneSets(it).reduce((a,b)=>(+b.w>+a.w?b:a));return `${it.name} ${s.w}kg×${s.r}`;})).slice(-20);
     try{
-      const r=await askJSON(`너는 경력 많은 퍼스널 트레이너다. 아래 조건에 맞는 1주 운동 플랜을 설계하라.
+      const r=await cachedJSON("plan_gen",JSON.stringify([o,p.sex,p.age,p.weight,p.goal,rec]),`너는 경력 많은 퍼스널 트레이너다. 아래 조건에 맞는 1주 운동 플랜을 설계하라.
 사용자: ${p.sex==="m"?"남":"여"} ${p.age}세 ${p.height}cm ${p.weight}kg, 식단 목표 ${GOALS[p.goal]}
 운동 목표: ${({hyper:"근비대",strength:"근력",cut:"체지방 감량",fit:"체력·건강"})[o.goal]}, 주 ${o.days}회, 경력 ${({beg:"초보",mid:"중급",adv:"상급"})[o.level]}, 장소 ${o.equip==="gym"?"헬스장":"홈트(덤벨·맨몸)"}
 강조 부위: ${o.focus.join(", ")||"없음"}
@@ -184,7 +194,7 @@ JSON만 출력: {"title":"플랜 이름","summary":"설계 의도 2~3문장","da
     const lv=S.main.level||"mid", st=planStats(S.main.plan), fb=planFeedback(S.main.plan,lv), p=S.main.profile;
     const planTxt=S.main.plan.map((d,i)=>`${WD[i]}: ${d.items.length?d.title+" — "+d.items.map(it=>`${it.name} ${it.sets.length}×${it.sets[0]?.r}${it.rirT?` RIR${it.rirT}`:""}`).join(", "):"휴식"}`).join("\n");
     const stTxt=MGROUP.map(([g])=>`${g} ${r1(st[g].sets)}세트/주${st[g].freq}회/세션최대${r1(st[g].maxS)}`).join(", ");
-    try{ await askText(`너는 근거 기반 코칭을 하는 퍼스널 트레이너다. 아래 주간 플랜을 평가하라. 한국어 존댓말, 마크다운 제목 없이 **굵게**만, 14줄 이내.
+    try{ await cachedText("plan_feedback",[lv,p.sex,p.age,p.weight,p.goal,planTxt].join("|"),`너는 근거 기반 코칭을 하는 퍼스널 트레이너다. 아래 주간 플랜을 평가하라. 한국어 존댓말, 마크다운 제목 없이 **굵게**만, 14줄 이내.
 사용자: ${p.sex==="m"?"남":"여"} ${p.age}세 ${p.weight}kg, 목표 ${GOALS[p.goal]}, 경력 ${({beg:"초보",mid:"중급",adv:"상급"})[lv]}.
 플랜:
 ${planTxt}
@@ -207,9 +217,10 @@ ${planTxt}
   addExToday(el){ const e=EXMAP[el.dataset.id]; day().workout.items.push(mkItem(e,e.def[0],e.def[1],e.def[2])); markDirty(dayKey(ui.date)); closeSheet(); ui.tab="workout"; render(); toast(`${e.name} 추가됨`); },
   saveWeight(){ const v=+document.getElementById("bwIn").value; if(!v||v<25||v>300) return toast("체중을 kg로 입력해 주세요"); day().weight=r1(v); markDirty(dayKey(ui.date)); if(ui.date>=lastWeightDate()){ S.main.profile.weight=r1(v); markDirty("main"); } render(); toast("체중을 기록했어요"); },
   async aiAsk(){
-    const q=document.getElementById("gAsk").value.trim(); if(!q) return; const out=document.getElementById("gAskOut"); out.innerHTML=`<div class="ai-out" style="margin-top:10px">답변 준비 중…</div>`;
-    try{ await askText(`헬스 트레이너로서 다음 질문에 답하라. 한국어 존댓말, 마크다운 제목 없이 **굵게**만, 12줄 이내. 통증이 심하거나 지속되면 전문의 상담을 권하라.\n질문: ${q}`, t=>{ out.innerHTML=`<div class="ai-out" style="margin-top:10px">${md(t)}</div>`; }); }
-    catch(e){ out.innerHTML=`<p class="small" style="color:var(--bad)">${esc(aiErr(e))}</p>`; }
+    const q=document.getElementById("gAsk").value.trim(); if(!q) return; const out=document.getElementById("gAskOut");
+    const kbHtml=kbAnswerHtml(q); out.innerHTML=kbHtml+`<div class="ai-out" style="margin-top:10px" id="gAskAi">Claude 답변 준비 중…</div>`; const ai=document.getElementById("gAskAi");
+    try{ await cachedText("ask",q,`헬스 트레이너로서 다음 질문에 답하라. 한국어 존댓말, 마크다운 제목 없이 **굵게**만, 12줄 이내. 통증이 심하거나 지속되면 전문의 상담을 권하라.\n질문: ${q}`, t=>{ ai.innerHTML=md(t); }); }
+    catch(e){ ai.outerHTML=`<p class="small" style="color:var(--bad);margin-top:8px">${esc(aiErr(e))}${kbHtml?" · 위의 자체 DB 결과는 그대로 볼 수 있어요.":""}</p>`; }
   },
   timerAdd(el){ timer.end+= +el.dataset.s*1000; timer.total=Math.max(timer.total||0,(timer.end-Date.now())/1000); tick(); },
   timerStop(){ clearInterval(timer.iv); document.getElementById("timer").classList.remove("on"); }
