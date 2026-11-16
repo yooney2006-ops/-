@@ -6,6 +6,7 @@ import evidenceJson from "../data/db/evidence.json";
 import rulesJson from "../data/db/rules.json";
 import unverifiedJson from "../data/db/unverified.json";
 import aliases from "../data/db/aliases.json";
+import exMetaJson from "../data/db/exercise_meta.json";
 import { EX } from "../data/exercises.js";
 import { FOOD_DB } from "../data/foods";
 import { buildIndex, norm, score, search, type Indexed } from "./search";
@@ -28,9 +29,13 @@ export function toEnglish(name: string): string {
   return name.replace(/[()°]/g, " ").split(/\s+/).map((w) => G[w] || "").filter(Boolean).join(" ");
 }
 const exAlias = aliases.exercise as Record<string, string[]>;
+/** 공개 운동 데이터(free-exercise-db)에서 가져온 영문 정식 이름·난이도. 대응하지 못한 운동은 없다(undefined) */
+export const EX_META = exMetaJson.exercises as Record<string, { en: string; level: string; match: string }>;
+export const EX_META_SOURCE = exMetaJson._meta;
+export const exMeta = (e: any) => EX_META[e.id] || EX_META[e.base];
 let exIndex: Indexed<any>[] | null = null;
 export function exerciseIndex(): Indexed<any>[] {
-  return (exIndex ??= buildIndex(EX as any[], (e) => [e.name, e.en, toEnglish(e.name), ...(exAlias[e.id] || exAlias[e.base] || []), e.muscles, e.equip, e.part, e.cat, e.brand, e.line]));
+  return (exIndex ??= buildIndex(EX as any[], (e) => [e.name, e.en, exMeta(e)?.en, toEnglish(e.name), ...(exAlias[e.id] || exAlias[e.base] || []), e.muscles, e.equip, e.part, e.cat, e.brand, e.line]));
 }
 export const searchExercises = (q: string, limit = 400) => search(exerciseIndex(), q, limit);
 
@@ -39,15 +44,18 @@ export interface FoodRow extends Food { id?: string; cat?: string; custom?: bool
 const foodAlias = aliases.food as Record<string, string[]>;
 let extraFoods: FoodRow[] = [];           // 가져온 공개 데이터(public/data/foods.json) + 검증 통과한 AI 응답
 let foodIdx: { key: unknown; idx: Indexed<FoodRow>[] } | null = null;
-export function setExtraFoods(list: FoodRow[]): void { extraFoods = list; foodIdx = null; }
+let extraVersion = 0;
+export function setExtraFoods(list: FoodRow[]): void { extraFoods = list; extraVersion++; foodIdx = null; }
 export const getExtraFoods = () => extraFoods;
 export const builtinFoods = () => FOOD_DB as FoodRow[];
 /** custom = 사용자가 직접 넣은 음식. 내 음식 → 내장 → 추가 데이터 순으로 찾는다 */
 export function foodIndex(custom: FoodRow[]): Indexed<FoodRow>[] {
-  if (foodIdx && foodIdx.key === custom && (foodIdx as any).n === custom.length) return foodIdx.idx;
+  // 색인은 음식 목록이 바뀔 때만 다시 만든다 (내 음식의 개수·이름이 같고 추가 데이터가 같으면 재사용)
+  const key = custom.length + "|" + custom.map((f) => f.name).join("\u0001") + "|" + extraVersion;
+  if (foodIdx && foodIdx.key === key) return foodIdx.idx;
   const all = [...custom.map((f) => ({ ...f, custom: true })), ...builtinFoods(), ...extraFoods];
   const idx = buildIndex(all, (f) => [f.name, ...(foodAlias[f.name] || []), f.cat]);
-  foodIdx = { key: custom, idx }; (foodIdx as any).n = custom.length; return idx;
+  foodIdx = { key, idx }; return idx;
 }
 export const searchFoods = (custom: FoodRow[], q: string, limit = 40) => search(foodIndex(custom), q, limit);
 

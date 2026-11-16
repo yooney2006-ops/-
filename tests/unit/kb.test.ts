@@ -124,3 +124,24 @@ describe("근거·규칙 데이터 무결성", () => {
     expect(RULES.find((r) => r.id === "vol_week")!.value).toContain("10–20");
   });
 });
+
+describe("가져온 공개 데이터", () => {
+  it("음식 파일: 출처·라이선스가 기록돼 있고 필수 영양값이 모두 숫자다", async () => {
+    const fs = await import("node:fs"); const doc = JSON.parse(fs.readFileSync("public/data/foods.json", "utf8"));
+    expect(doc.meta.sources.every((s: any) => s.name && s.license && s.url)).toBe(true);
+    expect(doc.foods.length).toBe(doc.meta.count); expect(doc.foods.length).toBeGreaterThan(5000);
+    for (const f of doc.foods) { if (![f.kcal, f.carb, f.protein, f.fat].every((v) => typeof v === "number") || !f.name || !doc.meta.defaults[f.src]) throw new Error("불완전한 레코드: " + f.name); }
+  });
+  it("운동 메타: 출처가 있고, 연결된 운동만 난이도를 가진다", async () => {
+    const { EX_META, EX_META_SOURCE } = await import("../../src/platform/kb");
+    expect(EX_META_SOURCE.source && EX_META_SOURCE.license).toBeTruthy();
+    expect(EX_META.bench.en).toBe("Barbell Bench Press - Medium Grip");
+    expect(Object.values(EX_META).every((m) => ["초급", "중급", "상급", ""].includes(m.level))).toBe(true);
+  });
+  it("영문 음식 검색이 수천 건에서도 빠르다", async () => {
+    const fs = await import("node:fs"); const doc = JSON.parse(fs.readFileSync("public/data/foods.json", "utf8"));
+    setExtraFoods(doc.foods); searchFoods([], "warmup");
+    const t = performance.now(); const r = searchFoods([], "chicken breast"); const dt = performance.now() - t;
+    expect(r.length).toBeGreaterThan(3); expect(dt).toBeLessThan(150); setExtraFoods([]);
+  });
+});

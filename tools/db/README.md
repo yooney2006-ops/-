@@ -8,7 +8,8 @@
 | 규칙(권장값) | `claims.py` → `build_kb.py` | `src/data/db/rules.json` | 자체 규칙, 근거 레코드 연결 |
 | 확인 못한 자료 | `claims.py` | `src/data/db/unverified.json` | — |
 | 별칭·한영 단어 | 직접 편집 | `src/data/db/aliases.json` | 자체 작성 |
-| 음식(추가) | `import_foods.py` | `public/data/foods.json` (아직 없음) | USDA FoodData Central(CC0), 식약처(이용허락범위 제한 없음) |
+| 음식(추가) | `import_foods.py` | `public/data/foods.json` (USDA 8,010건, 2026-11-16) | USDA FoodData Central(CC0). 식약처는 아직 없음 |
+| 운동 영문 이름·난이도 | `import_exercises.mjs` | `src/data/db/exercise_meta.json` (111개 중 70개 연결) | free-exercise-db (Unlicense) |
 
 ## 근거를 추가할 때
 
@@ -26,8 +27,8 @@ python tools/db/import_foods.py --usda <FoodData_Central_*.json> --mfds <식약�
 python tools/db/test_import.py
 ```
 - 식약처 파일은 열 이름을 `mfds_columns.json`에 먼저 채운다(확인하지 못해 비워 둠).
-- USDA 변환은 공개 문서의 구조에 맞춘 가짜 표본으로만 검사했다. 실제 파일로 처음 돌릴 때 건너뛴 개수(`skipped_missing_values`)를 확인할 것.
-- `public/data/foods.json`이 없으면 앱은 내장 음식 76개(출처가 '근삿값'이라 미검증)와 검증을 통과한 AI 응답만으로 동작한다.
+- USDA는 SR Legacy(2018-04)와 Foundation Foods(2025-04-24) JSON으로 실제 돌렸다: 8,010건, 필수 값이 없어 건너뛴 것 41건, 중복 제거 82건. 이름은 영문이다.
+- `public/data/foods.json`이 없어도 앱은 내장 음식 76개(출처가 '근삿값'이라 미검증)와 검증을 통과한 AI 응답으로 동작한다.
 
 ## 기기 안 저장소 (IndexedDB `gymlog` v2)
 

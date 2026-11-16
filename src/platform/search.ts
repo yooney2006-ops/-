@@ -49,7 +49,7 @@ export function buildIndex<T>(items: T[], texts: (it: T) => (string | undefined 
 }
 
 /** 한 후보의 점수. 0이면 불일치. 첫 번째 글(이름)에 맞으면 별칭보다 높다 */
-export function score<T>(q: string, e: Indexed<T>): number {
+export function score<T>(q: string, e: Indexed<T>, fuzzy = true): number {
   const qn = norm(q); if (!qn) return 1;
   const cho = isChoOnly(qn), qj = jamo(qn), tol = qj.length >= 9 ? 2 : 1;
   let best = 0;
@@ -57,7 +57,7 @@ export function score<T>(q: string, e: Indexed<T>): number {
     const w = i === 0 ? 1 : 0.9; let s = 0;
     if (e.n[i] === qn) s = 100; else if (e.n[i].startsWith(qn)) s = 80; else if (e.n[i].includes(qn)) s = 60;
     else if (cho && e.c[i].startsWith(qn)) s = 50; else if (cho && qn.length >= 2 && e.c[i].includes(qn)) s = 40;
-    else if (!cho) { const d = fuzzyIn(qj, e.j[i], tol); if (d <= tol) s = 30 - d * 8; }
+    else if (!cho && fuzzy) { const d = fuzzyIn(qj, e.j[i], tol); if (d <= tol) s = 30 - d * 8; }
     if (s * w > best) best = s * w;
   }
   return best;
@@ -67,12 +67,16 @@ export function score<T>(q: string, e: Indexed<T>): number {
 export function search<T>(index: Indexed<T>[], q: string, limit = 60): T[] {
   const words = String(q ?? "").trim().split(/\s+/).filter(Boolean);
   if (!words.length) return index.slice(0, limit).map((e) => e.item);
-  const whole = norm(q); const out: [number, number, T][] = [];
-  index.forEach((e, k) => {
-    let s = score(whole, e);
-    if (!s && words.length > 1) { let sum = 0; for (const w of words) { const x = score(w, e); if (!x) { sum = 0; break; } sum += x; } s = sum ? (sum / words.length) * 0.8 : 0; }
-    if (s) out.push([s, k, e.item]);
-  });
+  const whole = norm(q); let out: [number, number, T][] = [];
+  // 1차: 정확·앞부분·포함·초성 일치만. 하나도 없을 때만 오타 허용 비교를 한다 (음식 수천 건에서도 입력이 밀리지 않게)
+  for (const fuzzy of [false, true]) {
+    index.forEach((e, k) => {
+      let s = score(whole, e, fuzzy);
+      if (!s && words.length > 1) { let sum = 0; for (const w of words) { const x = score(w, e, fuzzy); if (!x) { sum = 0; break; } sum += x; } s = sum ? (sum / words.length) * 0.8 : 0; }
+      if (s) out.push([s, k, e.item]);
+    });
+    if (out.length) break; out = [];
+  }
   return out.sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, limit).map((x) => x[2]);
 }
 

@@ -76,5 +76,12 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(); ap.add_argument("--usda", action="append", default=[]); ap.add_argument("--mfds"); ap.add_argument("--mfds-columns", default="mfds_columns.json")
     ap.add_argument("--retrieved", default="", help="데이터를 받은 날짜 (YYYY-MM-DD)"); ap.add_argument("--out", required=True)
     a = ap.parse_args(); doc = build(a.usda, a.mfds, a.mfds_columns, a.retrieved)
+    # 파일 크기를 줄이려고 레코드마다 반복되는 출처·라이선스·상태는 meta.defaults[src]로 한 번만 적는다(앱이 읽을 때 채움)
+    doc["meta"]["defaults"] = {}
+    for f in doc["foods"]:
+        doc["meta"]["defaults"].setdefault(f["src"], {"source": f["source"], "license": f["license"], "status": f["status"]})
+        for k in ("source", "license", "status"): del f[k]
+        for k in ("brand", "barcode", "cat", "sugar", "sodium"):
+            if f.get(k) in ("", None): f.pop(k, None)
     json.dump(doc, open(a.out, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     print(json.dumps(doc["meta"], ensure_ascii=False))

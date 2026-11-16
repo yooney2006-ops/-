@@ -97,7 +97,7 @@ export async function ingestAIFoods(items: any[], custom: { name: string }[], or
 /** 시작할 때: 승격된 음식과 (있으면) 가져온 공개 음식 데이터를 불러온다. 둘 다 없어도 내장 DB로 동작한다 */
 export async function loadKnowledge(base = import.meta.env?.BASE_URL || "/"): Promise<void> {
   let imported: FoodRow[] = [];
-  try { const r = await fetch(base + "data/foods.json"); if (r.ok && (r.headers.get("content-type") || "").includes("json")) imported = (await r.json()).foods || []; } catch { /* 파일 없음·오프라인 */ }
+  try { const r = await fetch(base + "data/foods.json"); if (r.ok && (r.headers.get("content-type") || "").includes("json")) { const doc = await r.json(); const def = doc.meta?.defaults || {}; imported = (doc.foods || []).map((f: any) => ({ ...(def[f.src] || {}), ...f })); } } catch { /* 파일 없음·오프라인 */ }
   let promoted: FoodRow[] = [];
   try { promoted = (await kvAll<FoodRow>("promoted")).map(([, v]) => v); } catch { /* 저장소 없음 */ }
   setExtraFoods([...imported, ...promoted]);

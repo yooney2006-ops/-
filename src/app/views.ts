@@ -1,7 +1,7 @@
 // @ts-nocheck — 아티팩트 원본에서 그대로 옮긴 코드. 타입은 점진적으로 붙인다.
 import { viewInsights, initHeatMaps } from "./insights";
 import { evidenceSectionHtml, dietRuleHtml, exRuleIds } from "./evidence";
-import { searchExercises } from "../platform/kb";
+import { searchExercises, exMeta } from "../platform/kb";
 import { logMiss } from "../platform/search";
 import { EXMAP, PARTS, WD } from "./catalog";
 import { GOALS, calcTargets, sumMeals } from "./goals";
@@ -306,7 +306,7 @@ export function exDetail(id,fromName){
   const e=EXMAP[id]; if(!e) return tipsSheetCustom(fromName||"");
   const h=exHistory(e.name); const unit=e.type==="t"?"분":"회";
   let html=`<div class="spread"><h2 style="margin:0">${esc(e.name)}</h2><button class="btn sm ghost" data-act="closeSheet">닫기</button></div>
-  <div class="row xs muted" style="margin-top:4px"><span class="chip">${e.part}</span><span class="chip">${e.cat}</span><span>${esc(e.equip)}</span>${e.en?`<span>· ${esc(e.en)}</span>`:""}</div>
+  <div class="row xs muted" style="margin-top:4px"><span class="chip">${e.part}</span><span class="chip">${e.cat}</span><span>${esc(e.equip)}</span>${e.en?`<span>· ${esc(e.en)}</span>`:exMeta(e)?`<span>· ${esc(exMeta(e).en)}</span>`:""}${exMeta(e)&&exMeta(e).level?`<span class="chip" title="출처: free-exercise-db (퍼블릭 도메인)">난이도 ${exMeta(e).level}</span>`:""}</div>
   <div class="viewer"><span class="vhint">드래그해서 돌려보기</span><canvas id="figCanvas" aria-label="${esc(e.name)} 3D 동작"></canvas>
   <div class="vctl"><button class="btn sm" data-act="figPlay" id="figPlayBtn">일시정지</button><button class="btn sm" data-act="figSpeed" id="figSpeedBtn" aria-label="재생 속도">${ui.slow?"0.5x":"1.0x"}</button><span style="flex:1"></span><button class="btn sm ghost" data-act="figView" data-y="0">정면</button><button class="btn sm ghost" data-act="figView" data-y="90">측면</button><button class="btn sm ghost" data-act="figView" data-y="180">뒤</button><button class="btn sm ghost" data-act="figView" data-y="def">기본</button></div>
   <div class="vctl guides" role="group" aria-label="자세 가이드"><button class="tgl on" data-act="figGuide" data-g="trail" aria-pressed="true">궤적선</button><button class="tgl on" data-act="figGuide" data-g="muscles" aria-pressed="true">근육 강조</button><button class="tgl" data-act="figGuide" data-g="lines" aria-pressed="false">기준선·관절각</button></div></div>
