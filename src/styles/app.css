@@ -273,3 +273,15 @@ canvas.heat{width:100%;max-width:210px;height:300px;display:block;margin:0 auto}
 .set button.n{display:grid;place-items:center;align-self:center;width:100%}
 .timer>.xs{white-space:nowrap}
 .plates .pl{font-size:10px;min-width:15px}.pl.p2_5,.pl.p1_25{font-size:0}
+
+/* 간결한 운동 카드 + 화면 구성 */
+.card.ex.compact{padding:12px 14px}
+.card.ex.compact .ex-head{flex-wrap:nowrap;align-items:center}
+.ex-head .more{margin-left:auto;font-size:18px;font-weight:800;letter-spacing:1px}
+.ex-head .acts{flex-basis:100%;justify-content:flex-end;margin-top:6px}
+.notetxt{margin-top:4px;color:var(--muted);font-weight:600}
+.notetxt::before{content:"메모 · ";font-weight:400}
+.card.ex.compact .sets{margin-top:8px}
+.card.ex.compact .set.hdr{display:none}
+.wrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line);min-height:var(--tap);cursor:pointer}
+.wrow input{width:26px;height:26px;flex:none;accent-color:var(--accent)}

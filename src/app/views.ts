@@ -139,33 +139,58 @@ export function backupNudgeHtml(){
   const last=S.main.lastBackup?Math.floor((Date.now()-new Date(S.main.lastBackup).getTime())/86400000):null; if(last!=null&&last<14) return "";
   return `<section class="card" style="border-color:var(--warn)"><div class="spread"><div><h2>백업해 두세요</h2><div class="small" style="margin-top:2px">기록 <b class="num">${n}</b>일치가 이 기기에만 있어요 · 마지막 백업: <b>${last==null?"없음":last+"일 전"}</b></div></div><button class="btn primary" data-act="exportData">내보내기</button></div><p class="xs muted" style="margin:6px 0 0">브라우저 데이터를 지우거나 기기를 바꾸면 기록이 사라져요. 내려받은 파일은 '내 정보·목표 → 가져오기'로 되살릴 수 있어요.</p></section>`;
 }
+/* 화면 구성: 운동 탭에서 항상 보일 것을 사용자가 고른다. 꺼 둔 것은 카드의 ⋯(더보기)를 눌러야 보인다.
+   기본값은 '세트 기록에 필요한 것만' — 운동 중에는 무게·횟수·체크가 핵심이다. */
+export const WIDGETS=[
+  ["rir","RIR 칸","세트마다 남은 반복 수를 고르는 칸",true],
+  ["plates","원판 계산","바벨 운동에서 한쪽에 끼울 원판",true],
+  ["sug","추천 무게","지난 기록을 바탕으로 한 다음 무게 제안",false],
+  ["prev","지난 기록 줄","지난번 세트 전체와 '불러오기' 버튼 (세트 번호 아래 작은 글씨는 항상 보여요)",false],
+  ["note","메모 칸","시트 높이·핀 위치 메모 (적어 둔 메모는 항상 한 줄로 보여요)",false],
+  ["adjust","조절 버튼","세트 추가·무게 ±·증감 단위·휴식 시간·슈퍼세트",false],
+  ["expand","카드를 항상 펼쳐 두기","운동 카드의 모든 정보와 버튼을 늘 보이게",false],
+  ["week","이번 주 요일 줄","맨 위의 요일별 플랜·완료 표시",true],
+  ["done","운동 완료 요약","모든 세트를 끝냈을 때의 요약 카드",true],
+  ["map","오늘 자극한 근육 (3D)","완료한 세트로 색칠한 앞·뒤 인체",false],
+];
+export function widgets(){ const w=S.main.widgets||{}; const o={}; for(const [k,,,def] of WIDGETS) o[k]=w[k]==null?def:!!w[k]; return o; }
+export function layoutSheetHtml(){
+  const w=widgets();
+  return `<div class="spread"><h2>운동 화면 구성</h2><button class="btn sm ghost" data-act="closeSheet">닫기</button></div>
+  <p class="small muted" style="margin:4px 0 8px">켜 둔 것만 항상 보여요. 꺼 둔 것은 운동 카드의 <b>⋯</b>를 누르면 나와요.</p>
+  ${WIDGETS.map(([k,l,d])=>`<label class="wrow"><span><b>${l}</b><br><span class="xs muted">${d}</span></span><input type="checkbox" data-chg="widget" data-w="${k}" ${w[k]?"checked":""} aria-label="${l}"></label>`).join("")}
+  <div class="row" style="margin-top:10px"><button class="btn sm" data-act="layoutPreset" data-p="min">최소로</button><button class="btn sm" data-act="layoutPreset" data-p="all">전부 보이기</button><button class="btn sm" data-act="layoutPreset" data-p="def">기본값</button></div>`;
+}
 export function viewWorkout(){
   const dd=peekDay(ui.date); const items=dd.workout?.items||[]; const wi=wIdx(ui.date); const pd=S.main.plan[wi];
+  const WG=widgets();
+  let html="";
+  if(WG.week){
   // 주간 스트립
   const mon=addDays(ui.date,-wi);
-  let html=`<section class="card"><div class="spread"><h2>이번 주</h2><span class="muted xs">점 = 운동 완료</span></div><div class="week" style="margin-top:8px">`;
+  html+=`<section class="card"><div class="spread"><h2>이번 주</h2><span class="muted xs">점 = 운동 완료</span></div><div class="week" style="margin-top:8px">`;
   for(let i=0;i<7;i++){ const d=addDays(mon,i); const p=S.main.plan[i]; const done=(peekDay(d).workout?.items||[]).some(it=>doneSets(it).length);
     html+=`<button class="wd ${done?"done":""} ${d===ui.date?"sel":""}" data-act="goDate" data-date="${d}"><div class="l">${WD[i]} ${parseD(d).getDate()}</div><div class="t">${esc(p&&p.items.length?p.title:"휴식")}</div><span class="dot"></span></button>`; }
   html+=`</div></section>`;
+  }
   // 오늘 요약
   const sess=sessionInfo(ui.date);
   const total=items.reduce((a,it)=>a+(it.sets||[]).length,0), done=items.reduce((a,it)=>a+doneSets(it).length,0), vol=items.reduce((a,it)=>a+itemVolume(it),0);
   html+=`<section class="card"><div class="spread"><div><h2>${WD[wi]}요일 운동${pd&&pd.items.length?` · <span class="muted">플랜: ${esc(pd.title)}</span>`:""}</h2>
     <div class="row small" style="margin-top:4px"><span>완료 세트 <b class="num">${done}</b>/<span class="num">${total}</span></span><span class="muted">·</span><span>총 볼륨 <b class="num" id="sumVol">${r0(vol).toLocaleString()}</b> kg</span>${sess?`<span class="muted">·</span><span>운동 시간 <b class="num">${sess.min}</b>분</span>`:""}</div></div>
-    <div class="row">${pd&&pd.items.length?`<button class="btn sm" data-act="loadPlan">${items.length?"플랜 다시 불러오기":"플랜 불러오기"}</button>`:""}<button class="btn sm" data-act="pickPlan">다른 요일 루틴</button><button class="btn sm primary" data-act="addEx" data-target="log">+ 운동 추가</button></div></div></section>`;
-  if(sess&&total>0&&done===total) html+=sessionDoneHtml(sess,items,vol);
+    <div class="row"><button class="btn sm" data-act="pickPlan">루틴</button><button class="btn sm" data-act="layout" aria-label="운동 화면 구성">화면 구성</button><button class="btn sm primary" data-act="addEx" data-target="log">+ 운동 추가</button></div></div></section>`;
+  if(WG.done&&sess&&total>0&&done===total) html+=sessionDoneHtml(sess,items,vol);
   if(!items.length){
-    html+=`<div class="empty">${pd&&pd.items.length?`오늘은 <b>${esc(pd.title)}</b> 날이에요. "플랜 불러오기"로 시작하세요.`:"오늘은 플랜상 휴식일이에요. 운동을 직접 추가하거나 회복도 기반으로 만들 수 있어요."}</div>`;
+    html+=`<div class="empty">${pd&&pd.items.length?`오늘은 <b>${esc(pd.title)}</b> 날이에요.<div class="row" style="justify-content:center;margin-top:10px"><button class="btn primary" data-act="loadPlan">플랜 불러오기</button></div>`:"오늘은 플랜상 휴식일이에요. 운동을 직접 추가하거나 회복도 기반으로 만들 수 있어요."}</div>`;
   }else{
     items.forEach((it,i)=>{ html+=exCard(it,i,"log"); });
     html+=`<section class="card"><div class="spread"><div class="small">오늘 수정한 세트·무게를 다음 ${WD[wi]}요일 플랜에 그대로 쓰려면</div><button class="btn sm" data-act="saveToPlan">이 기록을 플랜에 반영</button></div></section>`;
   }
   const dm=dayMuscles(ui.date);
-  if(Object.keys(dm).length){ const prs=items.reduce((a,it)=>a+(it.sets||[]).filter(x=>x.pr).length,0);
+  if(WG.map&&Object.keys(dm).length){ const prs=items.reduce((a,it)=>a+(it.sets||[]).filter(x=>x.pr).length,0);
     html+=`<section class="card"><div class="spread"><h2>오늘 자극한 근육</h2><span class="xs muted">빨강 3세트 이상 · 살구 그 미만</span></div>
     <div class="grid2" style="margin-top:8px"><canvas id="mapFront" style="width:100%;height:240px" aria-label="앞면 근육 지도"></canvas><canvas id="mapBack" style="width:100%;height:240px" aria-label="뒷면 근육 지도"></canvas></div>
     <div class="row small" style="margin-top:6px"><span>완료 <b class="num">${done}</b>세트</span><span class="muted">·</span><span>볼륨 <b class="num">${r0(vol).toLocaleString()}</b>kg</span>${prs?`<span class="muted">·</span><span style="color:var(--accent)">신기록 <b class="num">${prs}</b>개</span>`:""}</div></section>`; }
-  html+=`<section class="card"><div class="spread"><div class="small">회복도·주간 볼륨·1RM 추이·월간 기록</div><button class="btn sm" data-act="tab" data-tab="stats">분석 보기 ›</button></div></section>`;
   return html;
 }
 /* 분석 탭으로 옮긴 카드: 회복도 막대, 이번 주 부위별 세트 */
@@ -196,7 +221,7 @@ export function platesHtml(it){
 /* 세트 값이 바뀌었을 때: 화면 전체를 다시 그리지 않고 원판 계산과 총 볼륨만 갱신한다(입력 포커스 유지) */
 export function refreshCard(i){
   const items=peekDay(ui.date).workout?.items||[]; const it=items[i]; if(!it) return;
-  const pe=document.getElementById("plates-"+i); if(pe) pe.innerHTML=platesHtml(it);
+  const pe=document.getElementById("plates-"+i); if(pe&&pe.innerHTML) pe.innerHTML=platesHtml(it);
   const sv=document.getElementById("sumVol"); if(sv) sv.textContent=r0(items.reduce((a,x)=>a+itemVolume(x),0)).toLocaleString();
 }
 export function exCard(it,i,mode){
@@ -204,13 +229,16 @@ export function exCard(it,i,mode){
   const unitW=t==="w"?"kg":"", unitR=t==="t"?"분":"회";
   let sug=null, pr=null;
   if(log){ sug=suggestNext(it,ui.date); pr=prevRecord(it.name,ui.date); }
-  const best=log&&t==="w"?bestE1rm(it.name):0;
-  let h=`<section class="card ex${it.ss?" ss-top":""}"><div class="ex-head"><div><div class="ex-title">${esc(it.name)}</div><div class="row xs muted" style="margin-top:2px"><span class="chip">${esc(exPart(it))}</span>${e&&e.stretch?`<span class="chip badge-s" title="${esc(e.stretch.note)}">스트레치</span>`:""}${it.ss?`<span class="chip ss">슈퍼세트 ↓</span>`:""}${it.rirT?`<span class="chip">목표 RIR ${esc(it.rirT)}</span>`:""}${e?`<span>${esc(e.equip)}</span>`:""}${best?`<span>· 추정 1RM 최고 <b class="num">${r1(best)}</b>kg</span>`:""}</div></div>
-    <div class="row"><button class="btn sm ghost" data-act="tips" data-ex="${esc(it.exId||"")}" data-name="${esc(it.name)}">팁</button>${log?`<button class="btn sm ghost" data-act="swap" data-i="${i}" data-target="${mode}">교체</button>`:""}<button class="btn sm icon ghost" data-act="moveEx" data-i="${i}" data-d="-1" data-target="${mode}" aria-label="위로">↑</button><button class="btn sm icon ghost" data-act="moveEx" data-i="${i}" data-d="1" data-target="${mode}" aria-label="아래로">↓</button><button class="btn sm icon ghost" data-act="delEx" data-i="${i}" data-target="${mode}" aria-label="삭제">✕</button></div></div>`;
-  if(log){ const nk=it.exId||it.name; h+=`<input type="text" class="exnote" data-chg="exNote" data-key="${esc(nk)}" value="${esc((S.main.exNotes||{})[nk]||"")}" maxlength="120" placeholder="메모 (시트 높이·핀 위치 등 — 다음에도 보여요)" aria-label="${esc(it.name)} 메모">`; }
-  if(log&&pr){ h+=`<div class="prevrow"><span class="xs muted">지난 기록 ${pr.date.slice(5).replace("-","/")} · ${pr.sets.map(s=>t==="w"?`${s.w}×${s.r}`:`${s.r}${unitR}`).join(", ")}</span><button class="btn sm" data-act="loadPrev" data-i="${i}">불러오기</button></div>`; }
-  if(sug){ h+=`<div class="hint" style="margin-top:6px">추천: ${esc(sug.msg)} <button class="why" data-act="why" data-rule="overload,rir">근거</button> <button class="btn sm" data-act="applySug" data-i="${i}" data-w="${sug.w}" data-r="${sug.r}">적용</button></div>`; }
-  const lg=log&&t!=="t"?" lg":"";
+  const WG=log?widgets():null; const open=!log||WG.expand||!!(ui.openCards&&ui.openCards[it.id||i]); // 기록 화면은 기본이 간결, ⋯를 누르면 펼침
+  const best=log&&open&&t==="w"?bestE1rm(it.name):0;
+  const nk=it.exId||it.name, noteTxt=log?((S.main.exNotes||{})[nk]||""):"";
+  let h=`<section class="card ex${it.ss?" ss-top":""}${open?"":" compact"}"><div class="ex-head"><div><div class="ex-title">${esc(it.name)}</div>${!open?`<div class="row xs muted" style="margin-top:2px"><span class="chip">${esc(exPart(it))}</span>${it.ss?`<span class="chip ss">슈퍼세트 ↓</span>`:""}</div>`:`<div class="row xs muted" style="margin-top:2px"><span class="chip">${esc(exPart(it))}</span>${e&&e.stretch?`<span class="chip badge-s" title="${esc(e.stretch.note)}">스트레치</span>`:""}${it.ss?`<span class="chip ss">슈퍼세트 ↓</span>`:""}${it.rirT?`<span class="chip">목표 RIR ${esc(it.rirT)}</span>`:""}${e?`<span>${esc(e.equip)}</span>`:""}${best?`<span>· 추정 1RM 최고 <b class="num">${r1(best)}</b>kg</span>`:""}</div>`}</div>
+    ${log&&!WG.expand?`<button class="btn sm icon ghost more" data-act="cardMore" data-i="${i}" aria-expanded="${open}" aria-label="${esc(it.name)} ${open?"접기":"더보기"}">${open?"접기":"⋯"}</button>`:""}${!open?"":`<div class="row acts"><button class="btn sm ghost" data-act="tips" data-ex="${esc(it.exId||"")}" data-name="${esc(it.name)}">팁</button>${log?`<button class="btn sm ghost" data-act="swap" data-i="${i}" data-target="${mode}">교체</button>`:""}<button class="btn sm icon ghost" data-act="moveEx" data-i="${i}" data-d="-1" data-target="${mode}" aria-label="위로">↑</button><button class="btn sm icon ghost" data-act="moveEx" data-i="${i}" data-d="1" data-target="${mode}" aria-label="아래로">↓</button><button class="btn sm icon ghost" data-act="delEx" data-i="${i}" data-target="${mode}" aria-label="삭제">✕</button></div>`}</div>`;
+  if(log&&(open||WG.note)){ h+=`<input type="text" class="exnote" data-chg="exNote" data-key="${esc(nk)}" value="${esc(noteTxt)}" maxlength="120" placeholder="메모 (시트 높이·핀 위치 등 — 다음에도 보여요)" aria-label="${esc(it.name)} 메모">`; }
+  else if(log&&noteTxt){ h+=`<div class="notetxt xs">${esc(noteTxt)}</div>`; }
+  if(log&&pr&&(open||WG.prev)){ h+=`<div class="prevrow"><span class="xs muted">지난 기록 ${pr.date.slice(5).replace("-","/")} · ${pr.sets.map(s=>t==="w"?`${s.w}×${s.r}`:`${s.r}${unitR}`).join(", ")}</span><button class="btn sm" data-act="loadPrev" data-i="${i}">불러오기</button></div>`; }
+  if(sug&&(open||WG.sug)){ h+=`<div class="hint" style="margin-top:6px">추천: ${esc(sug.msg)} <button class="why" data-act="why" data-rule="overload,rir">근거</button> <button class="btn sm" data-act="applySug" data-i="${i}" data-w="${sug.w}" data-r="${sug.r}">적용</button></div>`; }
+  const lg=log&&t!=="t"&&(open||WG.rir)?" lg":"";
   h+=`<div class="sets"><div class="set hdr${lg}"><span style="text-align:center">세트</span><span style="text-align:center">${t==="w"?"무게(kg)":t==="t"?"—":"추가중량"}</span><span style="text-align:center">${t==="t"?"시간(분)":"횟수"}</span>${lg?`<span style="text-align:center" title="남은 반복 수: 몇 개 더 할 수 있었나">RIR</span>`:""}<span style="text-align:center">${log?"완료":""}</span></div>`;
   let wn=0; // 본 세트 번호 (워밍업은 건너뜀)
   (it.sets||[]).forEach((s,k)=>{ const kind=s.kind||""; if(kind!=="w") wn++; const lab=kind==="w"?"W":kind==="d"?"D":wn;
@@ -221,7 +249,8 @@ export function exCard(it,i,mode){
     ${lg?`<select data-chg="rir" data-i="${i}" data-k="${k}" aria-label="${k+1}세트 RIR">${["","0","1","2","3","4"].map(v=>`<option value="${v}" ${String(s.rir??"")===v?"selected":""}>${v===""?"–":v==="4"?"4+":v}</option>`).join("")}</select>`:""}
     ${log?`<button class="check" data-act="toggleSet" data-i="${i}" data-k="${k}" aria-label="${k+1}세트 완료">✓</button>`:`<button class="btn sm icon ghost" data-act="delSet" data-i="${i}" data-k="${k}" data-target="${mode}" aria-label="세트 삭제">−</button>`}</div>`;
   });
-  if(log) h+=`<div id="plates-${i}">${platesHtml(it)}</div>`;
+  if(log) h+=`<div id="plates-${i}">${open||WG.plates?platesHtml(it):""}</div>`;
+  if(log&&!open&&!WG.adjust){ h+=`</div></section>`; return h; }
   h+=`</div><div class="adjust"><button class="btn sm" data-act="setCount" data-i="${i}" data-d="1" data-target="${mode}">+ 세트</button><button class="btn sm" data-act="setCount" data-i="${i}" data-d="-1" data-target="${mode}">− 세트</button>`;
   if(t==="w"){ const st=stepOf(it); h+=`<button class="btn sm" data-act="bulk" data-i="${i}" data-f="w" data-d="-1" data-target="${mode}">무게 −${st}</button><button class="btn sm" data-act="bulk" data-i="${i}" data-f="w" data-d="1" data-target="${mode}">무게 +${st}</button><label class="row xs muted" style="gap:4px">단위<select data-chg="step" data-target="${mode}" data-i="${i}" style="width:auto;padding:4px 6px;min-height:var(--tap)" aria-label="무게 증감 단위">${[1,1.25,2,2.5,5,10].map(v=>`<option value="${v}" ${st===v?"selected":""}>${v}kg</option>`).join("")}</select></label>`; }
   h+=`<button class="btn sm" data-act="bulk" data-i="${i}" data-f="r" data-d="-1" data-target="${mode}">${unitR} −1</button><button class="btn sm" data-act="bulk" data-i="${i}" data-f="r" data-d="1" data-target="${mode}">${unitR} +1</button>`;

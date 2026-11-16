@@ -54,6 +54,8 @@ export interface MainDoc {
   customFoods: Food[];
   plan: PlanDay[];
   planNote?: string;
+  /** 운동 탭 화면 구성: 항상 보일 위젯 (views.ts WIDGETS) */
+  widgets?: Record<string, boolean>;
   /** 운동별 무게 증감 단위(kg) */
   exStep?: Record<string, number>;
   /** 바벨 바 무게(kg), 기본 20 */

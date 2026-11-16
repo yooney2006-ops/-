@@ -7,7 +7,7 @@ import { startTimer, stopTimer, tick, timer, buzz } from "./timer";
 import { askNotify, primeSound, saveTab } from "../platform/session";
 import { cloneItems, doneSets, e1rm, exInfo, exPart, exType, feedbackHtml, groupWeights, makeTemplate, mkItem, planCheckHtml, planFeedback, planStats, recovery, prevRecord } from "./training";
 import { addDays, day, esc, md, peekDay, r0, r1, toast, uid, wIdx, ymd } from "./util";
-import { MGROUP, bestE1rmBefore, defaultMeal, exDetail, guideCards, guideFilter, lastWeightDate, render, refreshCard, stepOf, showCard } from "./views";
+import { MGROUP, bestE1rmBefore, defaultMeal, exDetail, guideCards, guideFilter, lastWeightDate, render, refreshCard, stepOf, showCard, WIDGETS, widgets, layoutSheetHtml } from "./views";
 import { EX } from "../data/exercises.js";
 import { aiErr, setAIToken } from "../platform/ai";
 import { cachedJSON, cachedText, photoJSON, ingestAIFoods, logHit } from "../platform/aiflow";
@@ -23,6 +23,10 @@ export const A={
   today(){ ui.date=ymd(new Date()); render(); },
   goDate(el){ ui.date=el.dataset.date; if(ui.tab==="stats"){ ui.tab="workout"; saveTab(ui.tab); window.scrollTo(0,0); } render(); }, // 분석 탭의 달력에서 누르면 그날 운동 기록으로
   openProfile(){ profileSheet(); },
+  layout(){ openSheet(layoutSheetHtml()); },
+  layoutPreset(el){ const p=el.dataset.p; const w={}; for(const [k,,,def] of WIDGETS) w[k]=p==="all"?true:p==="min"?false:def; if(p==="all") w.expand=true; S.main.widgets=w; markDirty("main"); render(); openSheet(layoutSheetHtml()); },
+  cardMore(el){ const it=day().workout.items[+el.dataset.i]; const k=it.id||+el.dataset.i; ui.openCards=ui.openCards||{}; ui.openCards[k]=!ui.openCards[k]; const y=el.closest(".card").getBoundingClientRect().top; render();
+    const c=document.querySelectorAll("#view .card.ex")[+el.dataset.i]; if(c) window.scrollBy(0,c.getBoundingClientRect().top-y); }, // 누른 카드가 제자리에 있게
   why(el){ whySheet(el.dataset.rule.split(",")); },
   dbStatus(){ dbStatusSheet(); },
   async exportData(){ await flush(); S.main.lastBackup=new Date().toISOString(); markDirty("main"); await flush(); downloadJSON(`gymlog-${ymd(new Date())}.json`, toBackup(S)); toast("백업 파일을 내려받았어요"); if(ui.tab==="stats") render(); },
@@ -282,6 +286,7 @@ document.addEventListener("change",e=>{
     // 화면 전체를 다시 그리면 방금 누른 다음 칸의 포커스(키보드)가 사라진다 → 바뀌는 부분만 갱신
     if(tg==="log") refreshCard(i); }
   if(k==="rir"){ const s=day().workout.items[+el.dataset.i].sets[+el.dataset.k]; s.rir=el.value; markDirty(dayKey(ui.date)); }
+  if(k==="widget"){ (S.main.widgets=S.main.widgets||widgets())[el.dataset.w]=el.checked; markDirty("main"); render(); return; }
   if(k==="step"){ const it=getItems(el.dataset.target)[+el.dataset.i]; (S.main.exStep=S.main.exStep||{})[it.exId||it.name]=+el.value; markDirty("main"); render(); }
   if(k==="barKg"){ S.main.barKg=+el.value; markDirty("main"); render(); }
   if(k==="rest"){ getItems(el.dataset.target)[+el.dataset.i].rest=+el.value; saveTarget(el.dataset.target); }

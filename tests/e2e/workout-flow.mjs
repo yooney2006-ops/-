@@ -7,6 +7,17 @@ let failed = 0; const check = (n, ok, x = "") => { console.log((ok ? "  ✓ " : 
 await p.goto(server.resolvedUrls.local[0]); await p.waitForSelector("#view > *");
 const seed = () => p.evaluate(() => { const g = window.gymlog; const d = g.day(); d.workout.items = [g.mkItem(g.EXMAP.bench, 3, 8, 60), g.mkItem(g.EXMAP.squat, 3, 6, 80), g.mkItem(g.EXMAP.lat_pd, 3, 10, 50)]; g.markDirty("d-" + g.ui.date); });
 await seed(); await p.click("[data-tab=workout]");
+// 0) 기본 화면은 간결하다: 세트 기록만 보이고 나머지는 ⋯ 뒤에 있다
+check("기본 화면: 카드에 ⋯ 버튼 하나, 조절 버튼·삭제 버튼은 숨김", await p.evaluate(() => { const c = document.querySelector(".card.ex"); return !!c.querySelector("[data-act=cardMore]") && !c.querySelector(".adjust") && !c.querySelector("[data-act=delEx]") && !!c.querySelector("[data-act=toggleSet]"); }));
+const h0 = await p.evaluate(() => document.querySelector(".card.ex").getBoundingClientRect().height);
+await p.click('[data-act=cardMore][data-i="0"]'); await p.waitForTimeout(150);
+check("⋯를 누르면 그 카드만 펼쳐진다", await p.evaluate(() => { const c = document.querySelectorAll(".card.ex"); return !!c[0].querySelector(".adjust") && !!c[0].querySelector("[data-act=delEx]") && !c[1].querySelector(".adjust"); }));
+check(`간결한 카드는 펼친 카드보다 훨씬 짧다 (${Math.round(h0)}px)`, h0 < 0.7 * await p.evaluate(() => document.querySelector(".card.ex").getBoundingClientRect().height));
+await p.click("[data-act=layout]"); await p.waitForTimeout(150); await p.click('#sheet input[data-w="rir"]'); await p.waitForTimeout(150);
+check("화면 구성에서 RIR 칸을 끄면 바로 사라진다", await p.evaluate(() => !document.querySelectorAll(".card.ex")[1].querySelector("select[data-chg=rir]") && window.gymlog.S.main.widgets.rir === false));
+await p.click('#sheet [data-act=layoutPreset][data-p="all"]'); await p.waitForTimeout(200); await p.evaluate(() => window.gymlog.A.closeSheet());
+check("'전부 보이기'를 고르면 모든 카드가 펼쳐진다", await p.evaluate(() => [...document.querySelectorAll(".card.ex")].every(c => c.querySelector(".adjust") && c.querySelector("select[data-chg=rir]"))));
+// 이하 검사는 전부 보이는 구성에서 진행 (구성은 저장되므로 새로고침 뒤에도 유지된다)
 // 1) 세트 값: 포커스 유지 + 뒤 세트로 이어짐
 await p.click('input[data-f="w"][data-i="0"][data-k="0"]'); await p.keyboard.press("Control+A"); await p.keyboard.type("62.5"); await p.click('input[data-f="r"][data-i="0"][data-k="0"]'); await p.waitForTimeout(150);
 check("무게를 고치고 횟수 칸을 누르면 포커스가 그 칸에 남는다", await p.evaluate(() => { const a = document.activeElement; return a?.dataset?.f === "r" && a.dataset.k === "0"; }));
