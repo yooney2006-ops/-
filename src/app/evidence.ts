@@ -4,7 +4,9 @@
  */
 import { DESIGN_KO, EVIDENCE_DB, RULES, UNVERIFIED, evidenceFor, rule, searchExercises, type Evidence, type Rule } from "../platform/kb";
 import { buildIndex, search } from "../platform/search";
-import { logHit } from "../platform/aiflow";
+import { logHit, aiStats, SITE_CLASS, type Site } from "../platform/aiflow";
+import { kvAll } from "../platform/storage";
+import { getExtraFoods, builtinFoods } from "../platform/kb";
 import { openSheet } from "./sheets";
 import { esc, r0 } from "./util";
 import { S } from "./state";
@@ -78,4 +80,22 @@ export function dietRuleHtml(T: any, t: any, nMeals: number): string {
   logHit("diet_coach", "db");
   return `<section class="card"><div class="spread"><h2>오늘 식단 요약</h2><button class="why" data-act="why" data-rule="protein_${p.goal === "cut" ? "cut" : p.goal === "bulk" ? "bulk" : "keep"},kcal_cut,kcal_bulk">근거</button></div>
     <ul class="tip-list small" style="margin-top:6px">${lines.map((l) => `<li>${l}</li>`).join("")}</ul><div class="xs muted">규칙 기반 계산 (AI 호출 없음)</div></section>`;
+}
+
+const SITE_KO: Record<Site, string> = { food_text: "음식 글 입력", food_photo: "음식 사진", diet_coach: "식단 코멘트", ex_tip: "운동 설명", plan_gen: "플랜 생성", plan_feedback: "플랜 평가", ask: "자유 질문" };
+/** DB 현황: 지점별 DB/캐시/AI 횟수, 검색 실패어(다음 DB 확장 우선순위), 검증 대기 중인 AI 응답 */
+export async function dbStatusSheet(): Promise<void> {
+  const [st, miss, pend] = await Promise.all([aiStats().catch(() => ({} as any)), kvAll<any>("search_miss").catch(() => []), kvAll<any>("pending").catch(() => [])]);
+  const rows = (Object.keys(SITE_KO) as Site[]).map((k) => { const v = st[k] || { db: 0, cache: 0, ai: 0, ai_fail: 0 }; return `<tr><td>${SITE_KO[k]} <span class="xs muted">${SITE_CLASS[k]}</span></td><td class="num">${v.db}</td><td class="num">${v.cache}</td><td class="num">${v.ai}</td><td class="num">${v.ai_fail}</td></tr>`; }).join("");
+  const top = miss.map(([, v]) => v).sort((a, b) => b.n - a.n).slice(0, 30);
+  const wait = pend.map(([, v]) => v).filter((v) => !v.check?.ok);
+  const extra = getExtraFoods();
+  openSheet(`<div class="spread"><h2>DB 현황</h2><button class="btn sm ghost" data-act="closeSheet">닫기</button></div>
+    <div class="small" style="margin-top:6px">음식 ${builtinFoods().length + extra.length}개 (내장 ${builtinFoods().length} · 공개 데이터 ${extra.filter((f) => f.src !== "ai").length} · 검증 통과한 AI 추정 ${extra.filter((f) => f.src === "ai").length}) · 규칙 ${RULES.length}개 · 논문 ${EVIDENCE_DB.length}편</div>
+    <h3 style="margin-top:14px">조회 기록</h3><table class="tbl"><tr><th>지점</th><th>DB</th><th>캐시</th><th>AI</th><th>실패</th></tr>${rows}</table>
+    <p class="xs muted">B = DB·캐시에 있으면 AI를 부르지 않는 지점, C = AI가 필요한 지점. 숫자는 이 기기 누적.</p>
+    <h3 style="margin-top:14px">검색에서 못 찾은 말 <span class="xs muted">${miss.length}개</span></h3>
+    ${top.length ? `<div class="row" style="margin-top:6px">${top.map((m) => `<span class="chip">${esc(m.q)} · ${m.kind === "food" ? "음식" : "운동"} ${m.n}회</span>`).join("")}</div>` : `<p class="small muted">아직 없어요.</p>`}
+    <h3 style="margin-top:14px">검증 대기 중인 AI 응답 <span class="xs muted">${wait.length}개</span></h3>
+    ${wait.length ? wait.slice(0, 20).map((w) => `<div class="xs" style="margin-top:4px"><b>${esc(w.item?.name || "?")}</b> ${r0(w.item?.kcal)}kcal — <span class="muted">${esc((w.check?.reasons || []).join(", "))}</span></div>`).join("") : `<p class="small muted">없어요. 검증 규칙(범위·필수값·열량 일치·중복)을 통과한 응답만 음식 DB에 들어가요.</p>`}`);
 }

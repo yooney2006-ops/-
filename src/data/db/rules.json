@@ -72,10 +72,13 @@
   "label": "증량 시 잉여",
   "value": "유지 열량 + 300 kcal",
   "applies_to": "",
-  "evidence": [],
-  "note": "잉여량을 수치로 뒷받침하는 확인된 근거가 없다(Slater 2019 고찰은 공백이 많다고만 정리).",
+  "evidence": [
+   "helms23",
+   "slater19"
+  ],
+  "note": "잉여가 클수록 근육보다 체지방이 더 늘었다는 무작위 연구에 따라 작은 잉여를 쓴다. '300'이라는 숫자 자체를 지목한 연구는 확인하지 못했다(앱의 선택).",
   "used_by": "goals.ts calcTargets",
-  "status": "미검증",
+  "status": "근거 연결됨",
   "source": "자체 규칙",
   "version": "2026.11.16"
  },
@@ -119,7 +122,7 @@
   "value": "6–12세트",
   "applies_to": "초보자",
   "evidence": [],
-  "note": "초보자용 범위를 직접 뒷받침하는 확인된 근거가 없다.",
+  "note": "초보자용 주간 범위(6–12)를 직접 뒷받침하는 확인된 근거가 없다. 관련: 비훈련자도 한 번에 부위당 4세트에서 근력 향상이 가장 컸다(Rhea 2003, 근력 기준).",
   "used_by": "training.ts VOL_RANGE",
   "status": "미검증",
   "source": "자체 규칙",
@@ -233,7 +236,8 @@
   "value": "목표 횟수를 모두 채우면 다음에 +2.5kg(하체·데드리프트 +5kg)",
   "applies_to": "",
   "evidence": [
-   "acsm09"
+   "acsm09",
+   "plotkin22"
   ],
   "note": "ACSM 2009는 목표보다 1–2회 더 할 수 있을 때 부하를 2–10% 올리라고 권한다. kg 단위 증가폭은 원판 단위에 맞춘 앱의 선택이다.",
   "used_by": "training.ts suggestNext",
@@ -314,6 +318,39 @@
   ],
   "note": "개별 무작위 연구 2건. 다른 운동의 '중간' 등급 표시는 확인된 근거가 없는 앱의 판단이다.",
   "used_by": "exercises.js STRETCH",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "rom",
+  "topic": "운동 선택",
+  "label": "가동범위",
+  "value": "가능한 전체 가동범위로",
+  "applies_to": "",
+  "evidence": [
+   "pallares21",
+   "acsm26"
+  ],
+  "note": "부분 가동범위(늘어난 구간) 훈련에 관한 Wolf 2023 메타분석은 확인하지 못했다.",
+  "used_by": "exercises.js tips",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "sets_per_ex",
+  "topic": "볼륨",
+  "label": "운동당 세트 수",
+  "value": "2–4세트",
+  "applies_to": "",
+  "evidence": [
+   "krieger10",
+   "rhea03",
+   "acsm26"
+  ],
+  "note": "1세트보다 여러 세트가 유리하다는 점은 일관된다. 2–3세트와 4–6세트의 근비대 차이는 유의하지 않았다.",
+  "used_by": "training.ts makeTemplate",
   "status": "근거 연결됨",
   "source": "자체 규칙",
   "version": "2026.11.16"

@@ -11,7 +11,7 @@ import { EX } from "../data/exercises.js";
 import { aiErr, setAIToken } from "../platform/ai";
 import { cachedJSON, cachedText, photoJSON, ingestAIFoods, logHit } from "../platform/aiflow";
 import { resolveFoodText } from "../platform/kb";
-import { whySheet, kbAnswerHtml } from "./evidence";
+import { whySheet, kbAnswerHtml, dbStatusSheet } from "./evidence";
 import { countDays, downloadJSON, parseBackup, toBackup } from "../platform/backup";
 
 /* 액션
@@ -23,6 +23,7 @@ export const A={
   goDate(el){ ui.date=el.dataset.date; render(); },
   openProfile(){ profileSheet(); },
   why(el){ whySheet(el.dataset.rule.split(",")); },
+  dbStatus(){ dbStatusSheet(); },
   async exportData(){ await flush(); downloadJSON(`gymlog-${ymd(new Date())}.json`, toBackup(S)); toast("백업 파일을 내려받았어요"); },
   importData(){ document.getElementById("importIn").click(); },
   saveAIToken(){ setAIToken(document.getElementById("aiToken").value.trim()); toast("AI 접속 암호를 저장했어요"); },

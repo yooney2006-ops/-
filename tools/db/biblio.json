@@ -942,5 +942,123 @@
   "crossref_title_match": true,
   "checked": "2026-11-16",
   "checked_via": "Crossref REST"
+ },
+ "plotkin22": {
+  "pmid": "36199287",
+  "doi": "10.7717/peerj.14142",
+  "title": "Progressive overload without progressing load? The effects of load or repetition progression on muscular adaptations.",
+  "journal": "PeerJ",
+  "year": 2022,
+  "authors": [
+   "Plotkin",
+   "Coleman",
+   "Van Every",
+   "Maldonado",
+   "Oberlin",
+   "Israetel"
+  ],
+  "n_authors": 10,
+  "pub_types": [
+   "Randomized Controlled Trial",
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "helms23": {
+  "pmid": "37914977",
+  "doi": "10.1186/s40798-023-00651-y",
+  "title": "Effect of Small and Large Energy Surpluses on Strength, Muscle, and Skinfold Thickness in Resistance-Trained Individuals: A Parallel Groups Design.",
+  "journal": "Sports Med Open",
+  "year": 2023,
+  "authors": [
+   "Helms",
+   "Spence",
+   "Sousa",
+   "Kreiger",
+   "Taylor",
+   "Oranchuk"
+  ],
+  "n_authors": 8,
+  "pub_types": [
+   "Journal Article"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "pallares21": {
+  "pmid": "34170576",
+  "doi": "10.1111/sms.14006",
+  "title": "Effects of range of motion on resistance training adaptations: A systematic review and meta-analysis.",
+  "journal": "Scand J Med Sci Sports",
+  "year": 2021,
+  "authors": [
+   "Pallarés",
+   "Hernández-Belmonte",
+   "Martínez-Cava",
+   "Vetrovsky",
+   "Steffl",
+   "Courel-Ibáñez"
+  ],
+  "n_authors": 6,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "rhea03": {
+  "pmid": "12618576",
+  "doi": "10.1249/01.MSS.0000053727.63505.D4",
+  "title": "A meta-analysis to determine the dose response for strength development.",
+  "journal": "Med Sci Sports Exerc",
+  "year": 2003,
+  "authors": [
+   "Rhea",
+   "Alvar",
+   "Burkett",
+   "Ball"
+  ],
+  "n_authors": 4,
+  "pub_types": [
+   "Comparative Study",
+   "Evaluation Study",
+   "Journal Article",
+   "Meta-Analysis"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "krieger10": {
+  "pmid": "20300012",
+  "doi": "10.1519/JSC.0b013e3181d4d436",
+  "title": "Single vs. multiple sets of resistance exercise for muscle hypertrophy: a meta-analysis.",
+  "journal": "J Strength Cond Res",
+  "year": 2010,
+  "authors": [
+   "Krieger"
+  ],
+  "n_authors": 1,
+  "pub_types": [
+   "Comparative Study",
+   "Journal Article",
+   "Meta-Analysis",
+   "Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
  }
 }

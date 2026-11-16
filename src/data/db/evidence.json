@@ -398,6 +398,31 @@
   "version": "2026.11.16"
  },
  {
+  "id": "helms23",
+  "claim": "체중을 더 빨리 늘리는(잉여가 큰) 쪽은 근력·근두께보다 주로 체지방 증가를 키웠다. 저자들은 이 연구 조건에 한정된 결과라고 밝혔다.",
+  "value": "",
+  "population": "훈련 경력이 섞인 사람들, 주 3일 8주",
+  "design": "rct",
+  "level": "C",
+  "authors": [
+   "Helms",
+   "Spence",
+   "Sousa"
+  ],
+  "n_authors": 8,
+  "cite": "Helms 외 (2023) Sports Med Open",
+  "year": 2023,
+  "journal": "Sports Med Open",
+  "title": "Effect of Small and Large Energy Surpluses on Strength, Muscle, and Skinfold Thickness in Resistance-Trained Individuals: A Parallel Groups Design.",
+  "doi": "10.1186/s40798-023-00651-y",
+  "pmid": "37914977",
+  "status": "검증됨",
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST",
+  "source": "PubMed·Crossref 서지 + 자체 요약",
+  "version": "2026.11.16"
+ },
+ {
   "id": "issn17prot",
   "claim": "ISSN 입장문. 운동하는 사람 대부분에게 하루 1.4–2.0 g/kg이면 충분하고, 열량을 줄이는 기간의 훈련 경험자는 제지방 유지를 위해 2.3–3.1 g/kg이 필요할 수 있다.",
   "value": "하루 1.4–2.0 g/kg; 열량 제한 중 2.3–3.1 g/kg",
@@ -416,6 +441,29 @@
   "title": "International Society of Sports Nutrition Position Stand: protein and exercise.",
   "doi": "10.1186/s12970-017-0177-8",
   "pmid": "28642676",
+  "status": "검증됨",
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST",
+  "source": "PubMed·Crossref 서지 + 자체 요약",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "krieger10",
+  "claim": "운동당 여러 세트가 1세트보다 근비대에 유리했다. 세트가 늘수록 효과가 커지는 경향이었지만 2–3세트와 4–6세트의 차이는 유의하지 않았다.",
+  "value": "여러 세트가 1세트보다 근비대 효과크기 40% 큼; 운동당 2–3세트와 4–6세트는 유의한 차이 없음",
+  "population": "훈련자·비훈련자 모두",
+  "design": "meta",
+  "level": "A",
+  "authors": [
+   "Krieger"
+  ],
+  "n_authors": 1,
+  "cite": "Krieger (2010) J Strength Cond Res",
+  "year": 2010,
+  "journal": "J Strength Cond Res",
+  "title": "Single vs. multiple sets of resistance exercise for muscle hypertrophy: a meta-analysis.",
+  "doi": "10.1519/JSC.0b013e3181d4d436",
+  "pmid": "20300012",
   "status": "검증됨",
   "checked": "2026-11-16",
   "checked_via": "PubMed E-utilities + Crossref REST",
@@ -618,6 +666,31 @@
   "version": "2026.11.16"
  },
  {
+  "id": "pallares21",
+  "claim": "전체 가동범위 훈련이 부분 가동범위보다 근력과 하체 근비대에 더 효과적이었다. 근두께 등 근육 구조 변화에는 큰 차이가 없었다.",
+  "value": "",
+  "population": "",
+  "design": "meta",
+  "level": "A",
+  "authors": [
+   "Pallarés",
+   "Hernández-Belmonte",
+   "Martínez-Cava"
+  ],
+  "n_authors": 6,
+  "cite": "Pallarés 외 (2021) Scand J Med Sci Sports",
+  "year": 2021,
+  "journal": "Scand J Med Sci Sports",
+  "title": "Effects of range of motion on resistance training adaptations: A systematic review and meta-analysis.",
+  "doi": "10.1111/sms.14006",
+  "pmid": "34170576",
+  "status": "검증됨",
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST",
+  "source": "PubMed·Crossref 서지 + 자체 요약",
+  "version": "2026.11.16"
+ },
+ {
   "id": "pareja19",
   "claim": "세트 안에서 속도 손실이 크고(40%) 부하가 가벼울수록(60% 1RM) 피로가 크고 회복이 느렸다.",
   "value": "",
@@ -693,6 +766,31 @@
   "version": "2026.11.16"
  },
  {
+  "id": "plotkin22",
+  "claim": "무게를 올리는 방식과 반복수를 올리는 방식 모두 근육 적응을 키우는 데 쓸 만했고, 두 방식의 차이는 작았다.",
+  "value": "",
+  "population": "8주 훈련",
+  "design": "rct",
+  "level": "C",
+  "authors": [
+   "Plotkin",
+   "Coleman",
+   "Van Every"
+  ],
+  "n_authors": 10,
+  "cite": "Plotkin 외 (2022) PeerJ",
+  "year": 2022,
+  "journal": "PeerJ",
+  "title": "Progressive overload without progressing load? The effects of load or repetition progression on muscular adaptations.",
+  "doi": "10.7717/peerj.14142",
+  "pmid": "36199287",
+  "status": "검증됨",
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST",
+  "source": "PubMed·Crossref 서지 + 자체 요약",
+  "version": "2026.11.16"
+ },
+ {
   "id": "ralston17",
   "claim": "주간 세트 수와 근력 향상 사이에도 단계적 용량-반응 관계가 있었다. 낮은 세트 수의 효과가 가장 작았다.",
   "value": "",
@@ -761,6 +859,31 @@
   "title": "Prediction of one repetition maximum strength from multiple repetition maximum testing and anthropometry.",
   "doi": "10.1519/R-15304.1",
   "pmid": "16937972",
+  "status": "검증됨",
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST",
+  "source": "PubMed·Crossref 서지 + 자체 요약",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "rhea03",
+  "claim": "근력 향상의 용량-반응이 훈련 상태에 따라 달랐다. 한 번 훈련에 부위당 4세트에서 향상이 가장 컸다.",
+  "value": "비훈련자: 60% 1RM, 부위당 주 3일 / 훈련자: 80% 1RM, 주 2일 / 둘 다 부위당 4세트",
+  "population": "비훈련자·훈련자 구분 (근력 향상 기준)",
+  "design": "meta",
+  "level": "A",
+  "authors": [
+   "Rhea",
+   "Alvar",
+   "Burkett"
+  ],
+  "n_authors": 4,
+  "cite": "Rhea 외 (2003) Med Sci Sports Exerc",
+  "year": 2003,
+  "journal": "Med Sci Sports Exerc",
+  "title": "A meta-analysis to determine the dose response for strength development.",
+  "doi": "10.1249/01.MSS.0000053727.63505.D4",
+  "pmid": "12618576",
   "status": "검증됨",
   "checked": "2026-11-16",
   "checked_via": "PubMed E-utilities + Crossref REST",
