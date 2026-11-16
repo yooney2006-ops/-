@@ -880,7 +880,9 @@ function viewer(canvas,ex,opts={}){
   // 궤적을 그릴 점: 동작 중 가장 많이 움직이는 끝점(바·손, 다리 운동이면 발목, 그 외 골반·머리)
   const TRACK=[J=>mid3(J.haL,J.haR),J=>mid3(J.anL,J.anR),J=>J.pelvis,J=>J.head];
   let trail=null; function getTrail(){ if(trail) return trail; let best=null,bd=-1;
-    for(const f of TRACK){ const pts=[]; for(let i=0;i<=40;i++) pts.push(f(rig.at(i/40))); let d=0; for(let i=1;i<pts.length;i++) d+=len(sub(pts[i],pts[i-1])); if(d>bd*1.15){bd=d;best={pts,f};} }
+    // 손(바)이 의미 있게 움직이면(15cm 이상) 손의 궤적을 우선한다 — 데드리프트에서 머리가 더 많이 움직여도 보여 줄 것은 바의 경로
+    const cand=TRACK.map(f=>{ const pts=[]; for(let i=0;i<=40;i++) pts.push(f(rig.at(i/40))); let d=0; for(let i=1;i<pts.length;i++) d+=len(sub(pts[i],pts[i-1])); return {pts,f,d}; });
+    if(cand[0].d>=.15) best=cand[0]; else for(const c of cand){ if(c.d>bd*1.15){bd=c.d;best=c;} }
     return (trail=best); }
   function proj(p,W,H){ const Rr=Math.PI/180,yaw=view.yaw*Rr,pit=view.pitch*Rr,cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pit),sp=Math.sin(pit);
     const t=view.target||[0,.9,0],x=p[0]-t[0],y=p[1]-t[1],z=p[2]-t[2];

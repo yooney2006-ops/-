@@ -271,3 +271,5 @@ canvas.heat{width:100%;max-width:210px;height:300px;display:block;margin:0 auto}
 .card.ex.flash{animation:cardflash 1.6s ease-out}
 @keyframes cardflash{0%,40%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 3px transparent}}
 .set button.n{display:grid;place-items:center;align-self:center;width:100%}
+.timer>.xs{white-space:nowrap}
+.plates .pl{font-size:10px;min-width:15px}.pl.p2_5,.pl.p1_25{font-size:0}
