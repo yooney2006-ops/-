@@ -266,3 +266,8 @@ canvas.heat{width:100%;max-width:210px;height:300px;display:block;margin:0 auto}
 .exnote{margin-top:8px;font-size:13px!important;min-height:38px;background:transparent!important;border-style:dashed!important}
 .exnote:not(:placeholder-shown){border-style:solid!important;background:var(--surface-2)!important;font-weight:600}
 .done-card{border-color:var(--good);background:color-mix(in srgb,var(--good) 7%,var(--surface))}
+
+.res [data-act=pickEx]{min-width:56px;min-height:var(--tap)}
+.card.ex.flash{animation:cardflash 1.6s ease-out}
+@keyframes cardflash{0%,40%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 3px transparent}}
+.set button.n{display:grid;place-items:center;align-self:center;width:100%}

@@ -5,7 +5,7 @@
 import { S, ui } from "./state";
 import { addDays, esc, parseD, r0, r1, wIdx } from "./util";
 import { workSets, e1rm, exType, itemVolume, recovery, rirOf } from "./training";
-import { MGROUP, monthCal, recoveryCards } from "./views";
+import { MGROUP, monthCal, recoveryCards, backupNudgeHtml } from "./views";
 import { FIG } from "../engine/fig.js";
 import { EX } from "../data/exercises.js";
 import type { WorkoutItem } from "../types";
@@ -61,7 +61,7 @@ function bars(weeks: Week[], val: (w: Week) => number, fmt: (v: number) => strin
 export function viewInsights(): string {
   const ref = ui.date as string, cur = mondayOf(ref), weeks = weeklyStats(ref, 8);
   const any = weeks.some(w => w.sets > 0);
-  let h = `<section class="card"><div class="spread"><h2>회복 히트맵</h2><span class="xs muted">진할수록 아직 피로가 남은 부위</span></div>
+  let h = backupNudgeHtml() + `<section class="card"><div class="spread"><h2>회복 히트맵</h2><span class="xs muted">진할수록 아직 피로가 남은 부위</span></div>
     <div class="grid2" style="margin-top:8px"><canvas id="heatFront" class="heat" aria-label="앞면 피로도"></canvas><canvas id="heatBack" class="heat" aria-label="뒷면 피로도"></canvas></div>
     <div class="heatlegend xs muted"><span>회복됨</span><i></i><span>피로</span></div></section>`;
   if (!any) h += `<div class="empty">아직 완료한 세트가 없어요. 운동 탭에서 세트를 체크하면 여기에 볼륨·1RM·강도 추이가 쌓여요.</div>`;

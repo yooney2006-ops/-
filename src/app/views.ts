@@ -126,6 +126,19 @@ export function sessionDoneHtml(sess,items,vol){
   return `<section class="card done-card"><h2>오늘 운동 완료</h2><div class="kpis"><div><span class="xs muted">운동 시간</span><b class="num">${sess.min}분</b></div><div><span class="xs muted">세트</span><b class="num">${sets}</b></div><div><span class="xs muted">볼륨</span><b class="num">${r0(vol).toLocaleString()}</b></div></div>
   <div class="small" style="margin-top:8px">${hm(sess.start)} ~ ${hm(sess.end)}${prs?` · <b style="color:var(--accent)">신기록 ${prs}개</b>`:""}${diff!=null?` · 지난번(${prevDate.slice(5).replace("-","/")}) 대비 볼륨 <b class="num" style="color:${diff>=0?"var(--good)":"var(--warn)"}">${diff>=0?"+":""}${diff}%</b>`:""}</div></section>`;
 }
+/* 무게 증감 단위: 운동별로 기억한다(덤벨 1~2kg, 핀 머신 5kg 등). 고르지 않았으면 2.5kg */
+export function stepOf(it){ const v=(S.main.exStep||{})[it.exId||it.name]; return v>0?v:2.5; }
+/* 방금 추가·교체한 운동 카드로 스크롤하고 잠깐 강조한다 */
+export function showCard(target,i){
+  if(target!=="log"||ui.tab!=="workout") return; const c=document.querySelectorAll("#view .card.ex")[i]; if(!c) return;
+  c.classList.add("flash"); c.scrollIntoView({block:"center",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"}); setTimeout(()=>c.classList.remove("flash"),1600);
+}
+/* 백업 안내: 기록이 쌓였는데 백업한 지 2주가 넘었거나 한 번도 안 했을 때 */
+export function backupNudgeHtml(){
+  const n=Object.values(S.days).filter(d=>(d.meals||[]).length||(d.workout?.items||[]).length).length; if(n<5) return "";
+  const last=S.main.lastBackup?Math.floor((Date.now()-new Date(S.main.lastBackup).getTime())/86400000):null; if(last!=null&&last<14) return "";
+  return `<section class="card" style="border-color:var(--warn)"><div class="spread"><div><h2>백업해 두세요</h2><div class="small" style="margin-top:2px">기록 <b class="num">${n}</b>일치가 이 기기에만 있어요 · 마지막 백업: <b>${last==null?"없음":last+"일 전"}</b></div></div><button class="btn primary" data-act="exportData">내보내기</button></div><p class="xs muted" style="margin:6px 0 0">브라우저 데이터를 지우거나 기기를 바꾸면 기록이 사라져요. 내려받은 파일은 '내 정보·목표 → 가져오기'로 되살릴 수 있어요.</p></section>`;
+}
 export function viewWorkout(){
   const dd=peekDay(ui.date); const items=dd.workout?.items||[]; const wi=wIdx(ui.date); const pd=S.main.plan[wi];
   // 주간 스트립
@@ -176,8 +189,8 @@ export function recoveryCards(){
 /* 원판 계산 (다음에 할 세트 기준). 세트 값이 바뀌면 이 부분만 다시 그린다 */
 export function platesHtml(it){
   const t=exType(it), e=exInfo(it);
-  if(t==="w"&&e&&/바벨|스미스|EZ바/.test(e.equip)){ const nx=(it.sets||[]).find(x=>!x.done)||it.sets[0]; const pc=nx?plateCalc(+nx.w,/스미스/.test(e.equip)?0:/EZ/.test(e.equip)?10:20):null;
-    if(pc) return `<div class="plates" aria-hidden="true"><i class="pbar"></i>${pc.out.map(w=>`<i class="pl p${String(w).replace(".","_")}">${w}</i>`).join("")}<i class="pcol"></i></div><div class="xs muted" style="margin-top:4px">원판 (${nx.w}kg, 한쪽): <b class="num" style="color:var(--ink)">${pc.out.join(" + ")||"-"}</b>${pc.rest>0?` · ${pc.rest}kg 남음`:""} · ${/스미스/.test(e.equip)?"스미스 바 무게는 기종마다 달라요":/EZ/.test(e.equip)?"EZ바 10kg 기준":"바 20kg 기준"}</div>`; }
+  if(t==="w"&&e&&/바벨|스미스|EZ바/.test(e.equip)){ const nx=(it.sets||[]).find(x=>!x.done)||it.sets[0]; const bar=/스미스/.test(e.equip)?0:/EZ/.test(e.equip)?10:(S.main.barKg||20); const pc=nx?plateCalc(+nx.w,bar):null;
+    if(pc) return `<div class="plates" aria-hidden="true"><i class="pbar"></i>${pc.out.map(w=>`<i class="pl p${String(w).replace(".","_")}">${w}</i>`).join("")}<i class="pcol"></i></div><div class="xs muted" style="margin-top:4px">원판 (${nx.w}kg, 한쪽): <b class="num" style="color:var(--ink)">${pc.out.join(" + ")||"-"}</b>${pc.rest>0?` · ${pc.rest}kg 남음`:""} · ${/스미스/.test(e.equip)?"스미스 바 무게는 기종마다 달라요":/EZ/.test(e.equip)?"EZ바 10kg 기준":`바 <select data-chg="barKg" style="width:auto;padding:2px 4px;font-size:12px" aria-label="바 무게">${[20,15,10,7].map(v=>`<option value="${v}" ${bar===v?"selected":""}>${v}kg</option>`).join("")}</select> 기준`}</div>`; }
   return "";
 }
 /* 세트 값이 바뀌었을 때: 화면 전체를 다시 그리지 않고 원판 계산과 총 볼륨만 갱신한다(입력 포커스 유지) */
@@ -210,7 +223,7 @@ export function exCard(it,i,mode){
   });
   if(log) h+=`<div id="plates-${i}">${platesHtml(it)}</div>`;
   h+=`</div><div class="adjust"><button class="btn sm" data-act="setCount" data-i="${i}" data-d="1" data-target="${mode}">+ 세트</button><button class="btn sm" data-act="setCount" data-i="${i}" data-d="-1" data-target="${mode}">− 세트</button>`;
-  if(t==="w") h+=`<button class="btn sm" data-act="bulk" data-i="${i}" data-f="w" data-d="-2.5" data-target="${mode}">무게 −2.5</button><button class="btn sm" data-act="bulk" data-i="${i}" data-f="w" data-d="2.5" data-target="${mode}">무게 +2.5</button>`;
+  if(t==="w"){ const st=stepOf(it); h+=`<button class="btn sm" data-act="bulk" data-i="${i}" data-f="w" data-d="-1" data-target="${mode}">무게 −${st}</button><button class="btn sm" data-act="bulk" data-i="${i}" data-f="w" data-d="1" data-target="${mode}">무게 +${st}</button><label class="row xs muted" style="gap:4px">단위<select data-chg="step" data-target="${mode}" data-i="${i}" style="width:auto;padding:4px 6px;min-height:var(--tap)" aria-label="무게 증감 단위">${[1,1.25,2,2.5,5,10].map(v=>`<option value="${v}" ${st===v?"selected":""}>${v}kg</option>`).join("")}</select></label>`; }
   h+=`<button class="btn sm" data-act="bulk" data-i="${i}" data-f="r" data-d="-1" data-target="${mode}">${unitR} −1</button><button class="btn sm" data-act="bulk" data-i="${i}" data-f="r" data-d="1" data-target="${mode}">${unitR} +1</button>`;
   if(t!=="t") h+=`<label class="row xs muted" style="gap:4px">휴식<select data-chg="rest" data-target="${mode}" data-i="${i}" style="width:auto;padding:4px 6px">${[60,90,120,150,180,240].map(v=>`<option value="${v}" ${(it.rest||e?.rest||90)==v?"selected":""}>${Math.floor(v/60)}:${pad(v%60)}</option>`).join("")}</select></label>`;
   h+=`<button class="btn sm ${it.ss?"primary":""}" data-act="superset" data-i="${i}" data-target="${mode}" aria-pressed="${!!it.ss}">${it.ss?"슈퍼세트 해제":"다음 운동과 슈퍼세트"}</button>`;

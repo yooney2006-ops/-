@@ -1,7 +1,7 @@
 // 운동 중 흐름 검사 (IMPROVEMENTS.md 1~4번).  npm run build && node tests/e2e/workout-flow.mjs
 import { chromium } from "playwright"; import { preview } from "vite";
 const server = await preview({ logLevel: "error", preview: { port: 0 } });
-const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true }); const p = await ctx.newPage();
+const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, acceptDownloads: true }); const p = await ctx.newPage();
 const errs = []; p.on("pageerror", e => errs.push(e.message));
 let failed = 0; const check = (n, ok, x = "") => { console.log((ok ? "  ✓ " : "  ✗ ") + n + (ok ? "" : "  " + x)); if (!ok) failed++; };
 await p.goto(server.resolvedUrls.local[0]); await p.waitForSelector("#view > *");
@@ -97,5 +97,29 @@ const gone = await p.evaluate(() => (window.gymlog.S.main.routines || []).length
 await p.click("#toast [data-act=undoRoutine]"); await p.waitForTimeout(200);
 check("루틴 삭제와 되돌리기", gone && await p.evaluate(() => window.gymlog.S.main.routines.length === 1));
 await p.evaluate(() => window.gymlog.A.closeSheet());
+// 11) 운동 추가: 새 카드로 스크롤, 최근 한 운동 먼저, 추가 버튼 크기
+await p.evaluate(() => { const g = window.gymlog; g.ui.date = g.ymd(new Date()); const y = g.addDays(g.ui.date, -3); g.S.days[y] = { meals: [], workout: { planTitle: "즉석 하체", items: [g.mkItem(g.EXMAP.deadlift, 3, 5, 100), g.mkItem(g.EXMAP.leg_curl, 3, 12, 35)] } }; g.S.days[y].workout.items.forEach(it => it.sets.forEach(s => s.done = true)); g.markDirty("d-" + y);
+  g.day().workout.items = ["bench", "squat", "lat_pd", "ohp"].map(id => g.mkItem(g.EXMAP[id], 3, 8, 50)); g.markDirty("d-" + g.ui.date); g.ui.tab = "workout"; g.render(); window.scrollTo(0, 0); });
+await p.click("[data-act=addEx]"); await p.waitForTimeout(300);
+check("운동 추가 시트 맨 위에 최근에 한 운동이 나온다", await p.evaluate(() => { const t = document.getElementById("exRes").textContent; return t.indexOf("최근에 한 운동") === 0 && t.indexOf("데드리프트") < t.indexOf("전체 운동"); }));
+check("추가 버튼이 44px 이상", await p.evaluate(() => { const r = document.querySelector("#exRes [data-act=pickEx]").getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }));
+await p.click("#exRes [data-act=pickEx]"); await p.waitForTimeout(900);
+check("추가한 운동 카드가 화면 안으로 스크롤된다", await p.evaluate(() => { const c = [...document.querySelectorAll(".card.ex")].pop().getBoundingClientRect(); return c.top >= 0 && c.top < innerHeight - 100; }));
+// 12) 지난 운동 다시 하기
+await p.evaluate(() => { const g = window.gymlog; g.day().workout.items = []; g.markDirty("d-" + g.ui.date); g.render(); });
+await p.click("[data-act=pickPlan]"); await p.waitForTimeout(200); await p.click("#sheet [data-act=loadPlan][data-d]"); await p.waitForTimeout(250);
+check("최근 운동을 그날의 무게·횟수 그대로 오늘로 가져온다", await p.evaluate(() => { const it = window.gymlog.day().workout.items; return it.length === 2 && it[0].exId === "deadlift" && it[0].sets[0].w === 100 && it[0].sets.every(s => !s.done); }));
+// 13) 증감 단위·바 무게
+await p.selectOption('select[data-chg=step][data-i="1"]', "5"); await p.waitForTimeout(150);
+await p.click('[data-act=bulk][data-i="1"][data-f="w"][data-d="1"]'); await p.waitForTimeout(150);
+check("증감 단위를 5kg으로 고르면 +5씩 오른다 (35 → 40)", await p.evaluate(() => window.gymlog.day().workout.items[1].sets[0].w === 40 && window.gymlog.S.main.exStep.leg_curl === 5));
+check("고른 단위가 버튼 글자에 보인다", (await p.textContent('[data-act=bulk][data-i="1"][data-f="w"][data-d="1"]')).includes("+5"));
+await p.selectOption("select[data-chg=barKg]", "15"); await p.waitForTimeout(150);
+check("바 무게를 15kg으로 바꾸면 원판 계산이 달라진다 (100kg → 한쪽 42.5)", (await p.textContent("#plates-0")).replace(/\s+/g, " ").includes("25 + 15 + 2.5"));
+// 14) 백업 안내
+await p.evaluate(() => { const g = window.gymlog; for (let i = 5; i < 12; i++) { const d = g.addDays(g.ui.date, -i); g.S.days[d] = { meals: [], workout: { items: [g.mkItem(g.EXMAP.bench, 1, 8, 60)] } }; } delete g.S.main.lastBackup; g.ui.tab = "stats"; g.render(); });
+check("기록이 쌓였는데 백업이 없으면 분석 탭에 백업 안내가 뜬다", await p.evaluate(() => /백업해 두세요/.test(document.getElementById("view").textContent) && /마지막 백업: 없음/.test(document.getElementById("view").textContent)));
+const [dl] = await Promise.all([p.waitForEvent("download"), p.click("#view [data-act=exportData]")]); await dl.path(); await p.waitForTimeout(300);
+check("내보내면 안내가 사라지고 백업 날짜가 기록된다", await p.evaluate(() => !/백업해 두세요/.test(document.getElementById("view").textContent) && !!window.gymlog.S.main.lastBackup));
 check("페이지 오류 없음", errs.length === 0, errs.join(" | "));
 await b.close(); await server.close(); console.log(failed ? `\n실패 ${failed}건` : "\n모두 통과"); process.exit(failed ? 1 : 0);

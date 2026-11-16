@@ -7,7 +7,7 @@ import { startTimer, stopTimer, tick, timer, buzz } from "./timer";
 import { askNotify, primeSound, saveTab } from "../platform/session";
 import { cloneItems, doneSets, e1rm, exInfo, exPart, exType, feedbackHtml, groupWeights, makeTemplate, mkItem, planCheckHtml, planFeedback, planStats, recovery, prevRecord } from "./training";
 import { addDays, day, esc, md, peekDay, r0, r1, toast, uid, wIdx, ymd } from "./util";
-import { MGROUP, bestE1rmBefore, defaultMeal, exDetail, guideCards, guideFilter, lastWeightDate, render, refreshCard } from "./views";
+import { MGROUP, bestE1rmBefore, defaultMeal, exDetail, guideCards, guideFilter, lastWeightDate, render, refreshCard, stepOf, showCard } from "./views";
 import { EX } from "../data/exercises.js";
 import { aiErr, setAIToken } from "../platform/ai";
 import { cachedJSON, cachedText, photoJSON, ingestAIFoods, logHit } from "../platform/aiflow";
@@ -25,7 +25,7 @@ export const A={
   openProfile(){ profileSheet(); },
   why(el){ whySheet(el.dataset.rule.split(",")); },
   dbStatus(){ dbStatusSheet(); },
-  async exportData(){ await flush(); downloadJSON(`gymlog-${ymd(new Date())}.json`, toBackup(S)); toast("백업 파일을 내려받았어요"); },
+  async exportData(){ await flush(); S.main.lastBackup=new Date().toISOString(); markDirty("main"); await flush(); downloadJSON(`gymlog-${ymd(new Date())}.json`, toBackup(S)); toast("백업 파일을 내려받았어요"); if(ui.tab==="stats") render(); },
   importData(){ document.getElementById("importIn").click(); },
   saveAIToken(){ setAIToken(document.getElementById("aiToken").value.trim()); toast("AI 접속 암호를 저장했어요"); },
   closeSheet(){ closeSheet(); },
@@ -106,6 +106,7 @@ export const A={
     openSheet(`<div class="spread"><h2>루틴 불러오기</h2><button class="btn sm ghost" data-act="closeSheet">닫기</button></div>
     <h3 style="margin-top:10px">내 루틴</h3><div class="results">${rts.map(r=>row(`data-r="${r.id}"`,r.name,r.items,"",`<button class="btn sm icon ghost" data-act="delRoutine" data-r="${r.id}" aria-label="${esc(r.name)} 루틴 삭제" style="min-width:44px;min-height:44px">✕</button>`)).join("")||`<div class="empty small">저장한 루틴이 없어요. 요일에 묶이지 않는 루틴(예: 상체 A, 홈트)을 저장해 두세요.</div>`}</div>
     <div class="row" style="margin-top:8px"><button class="btn" data-act="saveRoutine" ${today.length?"":"disabled"}>오늘 운동을 루틴으로 저장</button></div>
+    <h3 style="margin-top:14px">최근 운동 <span class="xs muted">그날 한 그대로 다시</span></h3><div class="results">${Object.keys(S.days).filter(d=>d<ui.date&&(S.days[d].workout?.items||[]).some(it=>doneSets(it).length)).sort().reverse().slice(0,5).map(d=>row(`data-d="${d}"`,`${+d.slice(5,7)}/${+d.slice(8)} (${WD[wIdx(d)]})${S.days[d].workout.planTitle?" · "+S.days[d].workout.planTitle:""}`,S.days[d].workout.items)).join("")||`<div class="empty small">아직 기록이 없어요.</div>`}</div>
     <h3 style="margin-top:14px">주간 플랜</h3><div class="results">${S.main.plan.map((p,i)=>p.items.length?row(`data-i="${i}"`,`${WD[i]}요일 · ${p.title}`,p.items,i===wi?` <span class="chip">오늘</span>`:""):"").join("")||`<div class="empty small">저장된 플랜이 없어요.</div>`}</div>`); },
   saveRoutine(){ const items=day().workout.items; if(!items.length) return; const def=day().workout.planTitle||"내 루틴"; const name=(prompt("루틴 이름",def)||"").trim().slice(0,30); if(!name) return;
     const rts=(S.main.routines=S.main.routines||[]); const ex=rts.find(r=>r.name===name); const body=cloneItems(items);
@@ -114,9 +115,10 @@ export const A={
   delRoutine(el){ const rts=S.main.routines||[]; const i=rts.findIndex(r=>r.id===el.dataset.r); if(i<0) return; const [r]=rts.splice(i,1); ui.undoRoutine={r,i}; markDirty("main"); A.pickPlan(); toast(`"${r.name}" 삭제됨`,{label:"되돌리기",act:"undoRoutine"}); },
   undoRoutine(){ const u=ui.undoRoutine; if(!u) return; ui.undoRoutine=null; (S.main.routines=S.main.routines||[]).splice(u.i,0,u.r); markDirty("main"); if(document.getElementById("sheet").classList.contains("open")) A.pickPlan(); toast("되돌렸어요"); },
   loadPlan(el){
-    const d=day(); const rt=el&&el.dataset.r?(S.main.routines||[]).find(r=>r.id===el.dataset.r):null; const pi=rt?-1:el&&el.dataset.i!=null?+el.dataset.i:wIdx(ui.date); const p=rt?{title:rt.name,items:rt.items}:S.main.plan[pi]; if(!p) return;
+    const d=day(); const rt=el&&el.dataset.r?(S.main.routines||[]).find(r=>r.id===el.dataset.r):null; const past=el&&el.dataset.d?S.days[el.dataset.d]:null;
+    const pi=rt||past?-1:el&&el.dataset.i!=null?+el.dataset.i:wIdx(ui.date); const p=rt?{title:rt.name,items:rt.items}:past?{title:past.workout.planTitle||"지난 운동",items:past.workout.items}:S.main.plan[pi]; if(!p) return;
     if(d.workout.items.some(it=>doneSets(it).length)&&!ui.confirmLoad){ ui.confirmLoad=true; toast("완료한 세트가 있어요. 한 번 더 누르면 덮어써요"); setTimeout(()=>ui.confirmLoad=false,3000); return; }
-    ui.confirmLoad=false; d.workout.items=cloneItems(p.items); d.workout.planTitle=p.title; markDirty(dayKey(ui.date)); if(el&&(el.dataset.i!=null||rt)) closeSheet(); render(); if(rt) toast(`"${rt.name}" 루틴을 불러왔어요`); else if(pi!==wIdx(ui.date)) toast(`${WD[pi]}요일 루틴(${p.title})을 불러왔어요`);
+    ui.confirmLoad=false; d.workout.items=cloneItems(p.items); d.workout.planTitle=p.title; markDirty(dayKey(ui.date)); if(el&&(el.dataset.i!=null||rt||past)) closeSheet(); render(); if(past) toast(`${el.dataset.d.slice(5).replace("-","/")} 운동을 불러왔어요 (그날의 무게·횟수 그대로)`); else if(rt) toast(`"${rt.name}" 루틴을 불러왔어요`); else if(pi!==wIdx(ui.date)) toast(`${WD[pi]}요일 루틴(${p.title})을 불러왔어요`);
   },
   addEx(el){ exSheet(el.dataset.target); },
   exPart(el){ ui.sheet.part=el.dataset.p; drawExSheet(); },
@@ -127,7 +129,8 @@ export const A={
     if(st.swapIdx!=null){ const old=items[st.swapIdx]; const n=mkItem(e,old.sets.length,e.type==="t"?e.def[1]:(+old.sets[0]?.r||e.def[1]),e.def[2]); items[st.swapIdx]=n; toast(`${old.name} → ${e.name}`); }
     else items.push(mkItem(e,e.def[0],e.def[1],e.def[2]));
     if(st.target!=="log"&&S.main.plan[+st.target.slice(4)].title==="휴식") S.main.plan[+st.target.slice(4)].title="운동";
-    saveTarget(st.target); closeSheet(); render();
+    const at=st.swapIdx!=null?st.swapIdx:items.length-1, tg=st.target;
+    saveTarget(st.target); closeSheet(); render(); showCard(tg,at);
   },
   pickCustomEx(){
     const st=ui.sheet; const items=getItems(st.target);
@@ -159,7 +162,7 @@ export const A={
     if(it.ss) delete it.ss; else it.ss=true; saveTarget(tg); render(); toast(it.ss?`${it.name} + ${items[i+1].name} 슈퍼세트 — 두 번째 운동을 끝낸 뒤에만 휴식 타이머가 떠요`:"슈퍼세트를 풀었어요"); },
   delSet(el){ const items=getItems(el.dataset.target); items[+el.dataset.i].sets.splice(+el.dataset.k,1); saveTarget(el.dataset.target); render(); },
   setCount(el){ const it=getItems(el.dataset.target)[+el.dataset.i]; if(+el.dataset.d>0){ const last=it.sets[it.sets.length-1]||{w:0,r:10}; it.sets.push({w:last.w,r:last.r,done:false}); } else { const k=it.sets.map(s=>s.done).lastIndexOf(false); if(it.sets.length>1) it.sets.splice(k>=0?k:it.sets.length-1,1); } saveTarget(el.dataset.target); render(); },
-  bulk(el){ const it=getItems(el.dataset.target)[+el.dataset.i]; const f=el.dataset.f, d=+el.dataset.d; it.sets.forEach(s=>{ if(!s.done) s[f]=Math.max(0,r1((+s[f]||0)+d)); }); saveTarget(el.dataset.target); render(); },
+  bulk(el){ const it=getItems(el.dataset.target)[+el.dataset.i]; const f=el.dataset.f, d=f==="w"?Math.sign(+el.dataset.d)*stepOf(it):+el.dataset.d; it.sets.forEach(s=>{ if(!s.done) s[f]=Math.max(0,r1((+s[f]||0)+d)); }); saveTarget(el.dataset.target); render(); },
   applySug(el){ const it=day().workout.items[+el.dataset.i]; it.sets.forEach(s=>{ if(!s.done&&s.kind!=="w"){ s.w=+el.dataset.w; s.r=+el.dataset.r; } }); markDirty(dayKey(ui.date)); render(); toast("추천 무게·횟수를 적용했어요"); },
   saveToPlan(){ const wi=wIdx(ui.date); const items=day().workout.items; S.main.plan[wi].items=cloneItems(items); if(S.main.plan[wi].title==="휴식") S.main.plan[wi].title=day().workout.planTitle||"운동"; markDirty("main"); toast(`${WD[wi]}요일 플랜에 반영했어요`); },
   genRecovery(){
@@ -277,6 +280,8 @@ document.addEventListener("change",e=>{
     // 화면 전체를 다시 그리면 방금 누른 다음 칸의 포커스(키보드)가 사라진다 → 바뀌는 부분만 갱신
     if(tg==="log") refreshCard(i); }
   if(k==="rir"){ const s=day().workout.items[+el.dataset.i].sets[+el.dataset.k]; s.rir=el.value; markDirty(dayKey(ui.date)); }
+  if(k==="step"){ const it=getItems(el.dataset.target)[+el.dataset.i]; (S.main.exStep=S.main.exStep||{})[it.exId||it.name]=+el.value; markDirty("main"); render(); }
+  if(k==="barKg"){ S.main.barKg=+el.value; markDirty("main"); render(); }
   if(k==="rest"){ getItems(el.dataset.target)[+el.dataset.i].rest=+el.value; saveTarget(el.dataset.target); }
   if(k==="dayTitle"){ S.main.plan[+el.dataset.i].title=el.value.trim()||"운동"; markDirty("main"); }
 });

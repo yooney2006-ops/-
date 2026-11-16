@@ -54,6 +54,12 @@ export interface MainDoc {
   customFoods: Food[];
   plan: PlanDay[];
   planNote?: string;
+  /** 운동별 무게 증감 단위(kg) */
+  exStep?: Record<string, number>;
+  /** 바벨 바 무게(kg), 기본 20 */
+  barKg?: number;
+  /** 마지막으로 백업 파일을 내보낸 시각 */
+  lastBackup?: string;
   /** 운동별 고정 메모 (키: 운동 id 또는 이름) */
   exNotes?: Record<string, string>;
   /** 요일과 무관한 이름 있는 루틴 */

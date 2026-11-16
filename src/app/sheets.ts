@@ -3,7 +3,7 @@ import { EXMAP, PARTS } from "./catalog";
 import { ACTS, GOALS, calcTargets } from "./goals";
 import { S, dayKey, markDirty, ui } from "./state";
 import { exPart } from "./training";
-import { day, esc, r0, r1 } from "./util";
+import { day, esc, r0, r1, addDays } from "./util";
 import { MEALS, exDetail } from "./views";
 import { BRANDS, EX, MUSCLE_KO } from "../data/exercises.js";
 import { FOOD_DB } from "../data/foods";
@@ -72,9 +72,12 @@ export function exSheet(target, swapIdx=null){
 export function exListHtml(){
   const st=ui.sheet; const q=st.q.trim().replace(/\s/g,"");
   const br=st.brand||"전체";
-  const list=(q?searchExercises(st.q):EX).filter(e=>(br==="전체"||(br==="일반"?!e.brand:e.brand===br))&&(st.part==="전체"||e.part===st.part));
+  let list=(q?searchExercises(st.q):EX).filter(e=>(br==="전체"||(br==="일반"?!e.brand:e.brand===br))&&(st.part==="전체"||e.part===st.part));
+  // 검색어가 없으면 최근 30일에 한 운동을 자주 한 순으로 먼저 보여 준다
+  let nRecent=0; if(!q){ const cnt={}; const from=addDays(ui.date,-30); Object.keys(S.days).filter(d=>d>=from).forEach(d=>(S.days[d].workout?.items||[]).forEach(it=>{ if(it.exId&&(it.sets||[]).some(x=>x.done)) cnt[it.exId]=(cnt[it.exId]||0)+1; }));
+    const rec=list.filter(e=>cnt[e.id]).sort((a,b)=>cnt[b.id]-cnt[a.id]).slice(0,8); nRecent=rec.length; if(nRecent) list=[...rec,...list.filter(e=>!rec.includes(e))]; }
   if(q&&!list.length) logMiss("exercise",st.q);
-  return list.map(e=>`<div class="res ${st.preview===e.id?"sel":""}" style="cursor:default;align-items:center"><button class="exrow" data-act="previewEx" data-id="${e.id}" aria-label="${esc(e.name)} 미리보기"><span><b>${esc(e.name)}</b> <span class="muted xs">${e.part} · ${e.brand?esc(e.equip):e.cat}</span>${e.stretch?` <span class="chip badge-s" style="font-size:11px">스트레치</span>`:""}<br><span class="xs" style="color:var(--muted)">${e.prim.map(k=>MUSCLE_KO[k]).join(", ")}</span></span></button><button class="btn sm" data-act="pickEx" data-id="${e.id}">${st.swapIdx!=null?"교체":"추가"}</button></div>`).join("")
+  return (nRecent?`<div class="xs muted" style="padding:4px 2px">최근에 한 운동</div>`:"")+list.map((e,ix)=>(nRecent&&ix===nRecent?`<div class="xs muted" style="padding:8px 2px 4px">전체 운동</div>`:"")+`<div class="res ${st.preview===e.id?"sel":""}" style="cursor:default;align-items:center"><button class="exrow" data-act="previewEx" data-id="${e.id}" aria-label="${esc(e.name)} 미리보기"><span><b>${esc(e.name)}</b> <span class="muted xs">${e.part} · ${e.brand?esc(e.equip):e.cat}</span>${e.stretch?` <span class="chip badge-s" style="font-size:11px">스트레치</span>`:""}<br><span class="xs" style="color:var(--muted)">${e.prim.map(k=>MUSCLE_KO[k]).join(", ")}</span></span></button><button class="btn sm" data-act="pickEx" data-id="${e.id}">${st.swapIdx!=null?"교체":"추가"}</button></div>`).join("")
    +(st.q.trim()&&!EX.some(e=>e.name===st.q.trim())?`<button class="res" data-act="pickCustomEx"><span>목록에 없는 운동 <b>"${esc(st.q.trim())}"</b> 추가 (${st.part==="전체"?"기타":st.part})</span></button>`:"");
 }
 export function exPreviewHtml(){
@@ -116,7 +119,7 @@ export function profileSheet(){
   <div class="grid2" style="margin-top:6px"><label class="f">칼로리<input type="number" id="oK" value="${T.kcal}"></label><label class="f">탄수화물 g<input type="number" id="oC" value="${T.carb}"></label><label class="f">단백질 g<input type="number" id="oP" value="${T.protein}"></label><label class="f">지방 g<input type="number" id="oF" value="${T.fat}"></label></div>
   <div class="row" style="margin-top:12px"><button class="btn primary" data-act="saveProfile">저장</button></div>
   <div class="card" style="margin-top:16px;background:var(--surface-2)"><h3>데이터 백업</h3>
-  <p class="small muted" style="margin:4px 0 8px">기록은 이 기기에만 저장돼요. 가끔 내보내 두면 기기를 바꾸거나 브라우저 데이터를 지워도 되살릴 수 있어요.</p>
+  <p class="small" style="margin:4px 0 0">마지막 백업: <b>${S.main.lastBackup?S.main.lastBackup.slice(0,10):"없음"}</b></p><p class="small muted" style="margin:4px 0 8px">기록은 이 기기에만 저장돼요. 가끔 내보내 두면 기기를 바꾸거나 브라우저 데이터를 지워도 되살릴 수 있어요.</p>
   <div class="row"><button class="btn sm" data-act="exportData">내보내기 (JSON)</button><button class="btn sm" data-act="importData">가져오기</button><button class="btn sm" data-act="dbStatus">DB 현황</button><button class="btn sm" data-act="askNotify">휴식 종료 알림 켜기</button><input type="file" id="importIn" accept="application/json,.json" hidden></div>
   <label class="f" style="margin-top:10px">AI 접속 암호 (서버에 설정한 경우만)<span class="row" style="flex-wrap:nowrap"><input type="password" id="aiToken" value="${esc(getAIToken())}" autocomplete="off"><button class="btn sm" data-act="saveAIToken">저장</button></span></label></div>`);
 }
