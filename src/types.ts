@@ -54,6 +54,10 @@ export interface MainDoc {
   customFoods: Food[];
   plan: PlanDay[];
   planNote?: string;
+  /** 운동별 고정 메모 (키: 운동 id 또는 이름) */
+  exNotes?: Record<string, string>;
+  /** 요일과 무관한 이름 있는 루틴 */
+  routines?: { id: string; name: string; items: WorkoutItem[] }[];
   [k: string]: unknown;
 }
 export interface DayDoc {

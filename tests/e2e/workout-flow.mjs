@@ -66,5 +66,36 @@ check("슈퍼세트의 앞 운동을 끝내면 타이머 없이 다음 운동으
 await p.click('[data-act=toggleSet][data-i="2"][data-k="0"]'); await p.waitForTimeout(250);
 check("슈퍼세트의 뒤 운동을 끝내면 타이머가 뜬다", await p.evaluate(() => document.getElementById("timer").classList.contains("on")));
 await p.evaluate(() => window.gymlog.A.timerStop());
+// 6) 입력만 하고 칸을 벗어나지 않아도 저장된다
+await seed(); await p.evaluate(() => { window.gymlog.A.timerStop(); window.gymlog.ui.tab = "workout"; window.gymlog.render(); window.scrollTo(0, 0); });
+await p.click('input[data-f="w"][data-i="1"][data-k="0"]'); await p.keyboard.press("Control+A"); await p.keyboard.type("77.5"); await p.waitForTimeout(500);
+await p.reload(); await p.waitForSelector("#view > *");
+check("입력 중이던 값이 새로고침 뒤에도 남는다 (77.5)", await p.evaluate(() => window.gymlog.day().workout.items[1].sets[0].w === 77.5));
+await p.evaluate(() => { window.gymlog.ui.tab = "workout"; window.gymlog.render(); });
+await p.click('input[data-f="w"][data-i="2"][data-k="0"]'); await p.keyboard.press("Control+A"); await p.keyboard.type("55"); await p.keyboard.press("Tab"); await p.waitForTimeout(150);
+check("입력 즉시 저장을 넣은 뒤에도 뒤 세트로 이어진다 (55 ×3)", JSON.stringify(await p.evaluate(() => window.gymlog.day().workout.items[2].sets.map(s => s.w))) === "[55,55,55]");
+// 7) 운동 메모: 다음에 같은 운동을 넣어도 보인다
+await p.fill('.exnote[data-key="bench"]', "시트 4칸, 그립 81cm"); await p.waitForTimeout(400);
+await p.evaluate(() => window.gymlog.flush()); await p.reload(); await p.waitForSelector("#view > *");
+await p.evaluate(() => { const g = window.gymlog; g.ui.date = g.addDays(g.ui.date, 1); g.day().workout.items = [g.mkItem(g.EXMAP.bench, 3, 8, 60)]; g.ui.tab = "workout"; g.render(); });
+check("메모가 다른 날 같은 운동에도 보인다", await p.inputValue('.exnote[data-key="bench"]') === "시트 4칸, 그립 81cm");
+await p.evaluate(() => { const g = window.gymlog; delete g.S.days[g.ui.date]; g.ui.date = g.ymd(new Date()); g.render(); });
+// 8) 운동 시간·완료 요약
+await p.evaluate(() => { const g = window.gymlog; const d = g.day(); d.workout.items = [g.mkItem(g.EXMAP.bench, 2, 8, 60)]; d.workout.items[0].sets[0].done = true; d.workout.items[0].sets[0].t = Date.now() - 25 * 60000; g.markDirty("d-" + g.ui.date); g.render(); });
+check("세트가 남아 있으면 완료 요약이 없다", await p.locator(".done-card").count() === 0);
+await p.click('[data-act=toggleSet][data-i="0"][data-k="1"]'); await p.waitForTimeout(250); await p.evaluate(() => window.gymlog.A.timerStop());
+check("모든 세트를 끝내면 완료 요약에 운동 시간(25분)·세트·볼륨이 나온다", await p.evaluate(() => { const t = document.querySelector(".done-card")?.textContent || ""; return /25분/.test(t) && /960/.test(t); }));
+// 9) 내 루틴 저장·불러오기·삭제·되돌리기
+p.once("dialog", d => d.accept("상체 A"));
+await p.click("[data-act=pickPlan]"); await p.waitForTimeout(150); await p.click("#sheet [data-act=saveRoutine]"); await p.waitForTimeout(250);
+check("오늘 운동을 이름 붙여 루틴으로 저장", await p.evaluate(() => { const r = window.gymlog.S.main.routines || []; return r.length === 1 && r[0].name === "상체 A" && r[0].items[0].sets.every(s => !s.done); }));
+await p.evaluate(() => { const g = window.gymlog; g.A.closeSheet(); g.ui.date = g.addDays(g.ui.date, 2); g.render(); });
+await p.click("[data-act=pickPlan]"); await p.waitForTimeout(150); await p.click("#sheet [data-act=loadPlan][data-r]"); await p.waitForTimeout(250);
+check("다른 날에 내 루틴을 불러온다", await p.evaluate(() => { const g = window.gymlog; return g.day().workout.items.length === 1 && g.day().workout.items[0].exId === "bench" && !document.getElementById("sheet").classList.contains("open"); }));
+await p.click("[data-act=pickPlan]"); await p.waitForTimeout(150); await p.click("#sheet [data-act=delRoutine]"); await p.waitForTimeout(200);
+const gone = await p.evaluate(() => (window.gymlog.S.main.routines || []).length === 0);
+await p.click("#toast [data-act=undoRoutine]"); await p.waitForTimeout(200);
+check("루틴 삭제와 되돌리기", gone && await p.evaluate(() => window.gymlog.S.main.routines.length === 1));
+await p.evaluate(() => window.gymlog.A.closeSheet());
 check("페이지 오류 없음", errs.length === 0, errs.join(" | "));
 await b.close(); await server.close(); console.log(failed ? `\n실패 ${failed}건` : "\n모두 통과"); process.exit(failed ? 1 : 0);
