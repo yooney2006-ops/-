@@ -120,7 +120,7 @@ export function profileSheet(){
   <div class="row" style="margin-top:12px"><button class="btn primary" data-act="saveProfile">저장</button></div>
   <div class="card" style="margin-top:16px;background:var(--surface-2)"><h3>데이터 백업</h3>
   <p class="small" style="margin:4px 0 0">마지막 백업: <b>${S.main.lastBackup?S.main.lastBackup.slice(0,10):"없음"}</b></p><p class="small muted" style="margin:4px 0 8px">기록은 이 기기에만 저장돼요. 가끔 내보내 두면 기기를 바꾸거나 브라우저 데이터를 지워도 되살릴 수 있어요.</p>
-  <div class="row"><button class="btn sm" data-act="exportData">내보내기 (JSON)</button><button class="btn sm" data-act="importData">가져오기</button><button class="btn sm" data-act="dbStatus">DB 현황</button><button class="btn sm" data-act="askNotify">휴식 종료 알림 켜기</button><input type="file" id="importIn" accept="application/json,.json" hidden></div>
+  <div class="row"><button class="btn sm" data-act="exportData">내보내기 (JSON)</button><button class="btn sm" data-act="importData">가져오기</button><button class="btn sm" data-act="exportCSV">운동 기록 CSV</button><button class="btn sm" data-act="dbStatus">DB 현황</button><button class="btn sm" data-act="askNotify">휴식 종료 알림 켜기</button><input type="file" id="importIn" accept="application/json,.json" hidden></div>
   <label class="f" style="margin-top:10px">AI 접속 암호 (서버에 설정한 경우만)<span class="row" style="flex-wrap:nowrap"><input type="password" id="aiToken" value="${esc(getAIToken())}" autocomplete="off"><button class="btn sm" data-act="saveAIToken">저장</button></span></label></div>`);
 }
 

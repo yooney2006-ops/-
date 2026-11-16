@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { loadAll, putDocs, replaceAll } from "../../src/platform/storage";
-import { countDays, parseBackup, toBackup } from "../../src/platform/backup";
+import { countDays, parseBackup, toBackup, toCSV, workoutRows } from "../../src/platform/backup";
 import type { AppState } from "../../src/types";
 
 const main = { profile: { sex: "m", age: 30, height: 175, weight: 70, activity: 1.55, goal: "bulk" }, override: null, customFoods: [], plan: [{ title: "A", items: [] }] } as AppState["main"];
@@ -38,5 +38,16 @@ describe("백업 파일", () => {
   it("빠진 필드는 채우고 잘못된 날짜 키는 버린다", () => {
     const s = parseBackup(JSON.stringify({ main, days: { "2026-11-14": {}, oops: dayA } }));
     expect(s.days).toEqual({ "2026-11-14": { meals: [], workout: { items: [] } } });
+  });
+});
+
+describe("CSV 내보내기", () => {
+  it("완료한 세트만, 워밍업은 번호 없이, 쉼표가 든 이름은 따옴표로", () => {
+    const st = { main, days: { "2026-11-16": { meals: [], workout: { items: [{ exId: "bench", name: "벤치, 바벨", sets: [{ w: 20, r: 10, done: true, kind: "w" }, { w: 60, r: 8, done: true, rir: "1", pr: true }, { w: 60, r: 8, done: false }] }] } } } } as any;
+    const rows = workoutRows(st);
+    expect(rows.length).toBe(3);
+    expect(rows[1]).toEqual(["2026-11-16", "벤치, 바벨", "가슴", "", "워밍업", 20, 10, "", ""]);
+    expect(rows[2]).toEqual(["2026-11-16", "벤치, 바벨", "가슴", 1, "본 세트", 60, 8, "1", "Y"]);
+    expect(toCSV(rows).split("\r\n")[2]).toBe('2026-11-16,"벤치, 바벨",가슴,1,본 세트,60,8,1,Y');
   });
 });

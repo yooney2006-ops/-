@@ -121,5 +121,18 @@ await p.evaluate(() => { const g = window.gymlog; for (let i = 5; i < 12; i++) {
 check("기록이 쌓였는데 백업이 없으면 분석 탭에 백업 안내가 뜬다", await p.evaluate(() => /백업해 두세요/.test(document.getElementById("view").textContent) && /마지막 백업: 없음/.test(document.getElementById("view").textContent)));
 const [dl] = await Promise.all([p.waitForEvent("download"), p.click("#view [data-act=exportData]")]); await dl.path(); await p.waitForTimeout(300);
 check("내보내면 안내가 사라지고 백업 날짜가 기록된다", await p.evaluate(() => !/백업해 두세요/.test(document.getElementById("view").textContent) && !!window.gymlog.S.main.lastBackup));
+// 15~17) 달력 → 그날 운동, 체크 해제 시 타이머, CSV
+await p.evaluate(() => { const g = window.gymlog; g.ui.date = g.ymd(new Date()); g.ui.tab = "stats"; g.render(); });
+const day3 = await p.evaluate(() => window.gymlog.addDays(window.gymlog.ui.date, -3));
+if (await p.locator(`.calc[data-date="${day3}"]`).count()) { await p.click(`.calc[data-date="${day3}"]`); await p.waitForTimeout(200);
+  check("분석 탭 달력에서 날짜를 누르면 그날 운동 기록으로 간다", await p.evaluate(() => window.gymlog.ui.tab === "workout" && /데드리프트/.test(document.getElementById("view").textContent))); }
+await p.evaluate(() => { const g = window.gymlog; g.A.timerStop(); g.ui.date = g.ymd(new Date()); g.day().workout.items = [g.mkItem(g.EXMAP.bench, 3, 8, 60)]; g.ui.tab = "workout"; g.render(); });
+await p.click('[data-act=toggleSet][data-i="0"][data-k="0"]'); await p.waitForTimeout(150); await p.click('[data-act=toggleSet][data-i="0"][data-k="0"]'); await p.waitForTimeout(150);
+check("체크를 바로 풀면 그 세트의 휴식 타이머도 꺼진다", await p.evaluate(() => !document.getElementById("timer").classList.contains("on")));
+await p.click("[data-act=openProfile]"); await p.waitForTimeout(150);
+const [csv] = await Promise.all([p.waitForEvent("download"), p.click("#sheet [data-act=exportCSV]")]);
+const text = (await import("node:fs")).readFileSync(await csv.path(), "utf8");
+check("운동 기록 CSV: 열 이름과 완료 세트가 들어 있다", text.charCodeAt(0) === 0xfeff && text.includes("날짜,운동,부위,세트,종류,무게(kg),횟수,RIR,신기록") && text.includes("컨벤셔널 데드리프트,등,1,본 세트,100,5"));
+await p.evaluate(() => window.gymlog.A.closeSheet());
 check("페이지 오류 없음", errs.length === 0, errs.join(" | "));
 await b.close(); await server.close(); console.log(failed ? `\n실패 ${failed}건` : "\n모두 통과"); process.exit(failed ? 1 : 0);

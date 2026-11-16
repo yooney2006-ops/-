@@ -13,7 +13,7 @@ import { aiErr, setAIToken } from "../platform/ai";
 import { cachedJSON, cachedText, photoJSON, ingestAIFoods, logHit } from "../platform/aiflow";
 import { resolveFoodText } from "../platform/kb";
 import { whySheet, kbAnswerHtml, dbStatusSheet } from "./evidence";
-import { countDays, downloadJSON, parseBackup, toBackup } from "../platform/backup";
+import { countDays, downloadCSV, downloadJSON, parseBackup, toBackup, workoutRows } from "../platform/backup";
 
 /* 액션
    ============================================================ */
@@ -21,11 +21,12 @@ export const A={
   tab(el){ ui.tab=el.dataset.tab; ui.editDay=null; saveTab(ui.tab); render(); window.scrollTo(0,0); },
   day(el){ ui.date=addDays(ui.date,+el.dataset.d); render(); },
   today(){ ui.date=ymd(new Date()); render(); },
-  goDate(el){ ui.date=el.dataset.date; render(); },
+  goDate(el){ ui.date=el.dataset.date; if(ui.tab==="stats"){ ui.tab="workout"; saveTab(ui.tab); window.scrollTo(0,0); } render(); }, // 분석 탭의 달력에서 누르면 그날 운동 기록으로
   openProfile(){ profileSheet(); },
   why(el){ whySheet(el.dataset.rule.split(",")); },
   dbStatus(){ dbStatusSheet(); },
   async exportData(){ await flush(); S.main.lastBackup=new Date().toISOString(); markDirty("main"); await flush(); downloadJSON(`gymlog-${ymd(new Date())}.json`, toBackup(S)); toast("백업 파일을 내려받았어요"); if(ui.tab==="stats") render(); },
+  async exportCSV(){ await flush(); const n=downloadCSV(`gymlog-운동기록-${ymd(new Date())}.csv`, workoutRows(S)); toast(n?`세트 ${n}개를 CSV로 내려받았어요`:"완료한 세트가 아직 없어요"); },
   importData(){ document.getElementById("importIn").click(); },
   saveAIToken(){ setAIToken(document.getElementById("aiToken").value.trim()); toast("AI 접속 암호를 저장했어요"); },
   closeSheet(){ closeSheet(); },
@@ -150,12 +151,13 @@ export const A={
     let n=0,wk=0; it.sets.forEach(s=>{ if(s.kind==="w") return; const p=pr.sets[wk]||pr.sets[pr.sets.length-1]; wk++; if(!s.done&&p){ s.w=p.w; s.r=p.r; n++; } }); // 워밍업은 건드리지 않고 본 세트끼리 순서를 맞춘다
     markDirty(dayKey(ui.date)); render(); buzz(8); toast(n?"지난 기록을 불러왔어요":"이미 끝낸 세트는 그대로 뒀어요"); },
   toggleSet(el){ const it=day().workout.items[+el.dataset.i]; const s=it.sets[+el.dataset.k]; s.done=!s.done; if(s.done) s.t=Date.now(); else { delete s.t; delete s.pr; }
+    if(!s.done&&ui.timerBy===el.dataset.i+"-"+el.dataset.k){ stopTimer(); ui.timerBy=null; } // 잘못 누른 체크를 풀면 그 세트가 띄운 타이머도 끈다
     primeSound(); ui.justDone=s.done?el.dataset.i+"-"+el.dataset.k:null; buzz(s.done?14:6); setTimeout(()=>{ui.justDone=null;},400);
     if(s.done&&exType(it)==="w"&&s.kind!=="w"){ const prev=bestE1rmBefore(it.name,ui.date,s); const cur=e1rm(+s.w,+s.r); if(prev>0&&cur>prev+.01){ s.pr=true; buzz([20,60,30]); toast(`신기록! ${it.name} 추정 1RM ${r1(cur)}kg (이전 ${r1(prev)}kg)`); } } markDirty(dayKey(ui.date)); render(); if(s.done&&exType(it)!=="t"){ const base=it.rest||exInfo(it)?.rest||90; const nextSet=it.sets[+el.dataset.k+1]; const items=day().workout.items, ii=+el.dataset.i;
       // 다음 세트가 드롭세트면 쉬지 않고 바로, 슈퍼세트의 앞 운동이면 다음 운동으로 넘어간다
       if(nextSet&&nextSet.kind==="d"&&!nextSet.done){ toast("드롭세트 — 무게를 내리고 바로 이어서"); }
       else if(it.ss&&items[ii+1]){ toast(`슈퍼세트 — 바로 ${items[ii+1].name}`); }
-      else startTimer(s.kind==="w"?Math.min(60,base):base+(String(s.rir)==="0"?30:0)); } },
+      else { startTimer(s.kind==="w"?Math.min(60,base):base+(String(s.rir)==="0"?30:0)); ui.timerBy=el.dataset.i+"-"+el.dataset.k; } } },
   setKind(el){ const tg=el.dataset.target, it=getItems(tg)[+el.dataset.i], s=it.sets[+el.dataset.k]; const order=["","w","d"]; const nx=order[(order.indexOf(s.kind||"")+1)%3];
     if(nx) s.kind=nx; else delete s.kind; if(nx==="w") delete s.pr; saveTarget(tg); render(); buzz(6); toast(nx==="w"?"워밍업 세트 — 볼륨·세트 수·회복도 계산에서 빠져요":nx==="d"?"드롭세트 — 앞 세트 뒤에 쉬지 않고 이어서 해요":"본 세트"); },
   superset(el){ const tg=el.dataset.target, items=getItems(tg), i=+el.dataset.i, it=items[i]; if(!it.ss&&i>=items.length-1) return toast("아래에 묶을 운동이 없어요");
