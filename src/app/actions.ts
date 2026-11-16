@@ -134,15 +134,23 @@ export const A={
     const items=getItems(u.target); items.splice(Math.min(u.i,items.length),0,u.item); saveTarget(u.target); render(); toast("되돌렸어요"); },
   moveEx(el){ const items=getItems(el.dataset.target); const i=+el.dataset.i, j=i+(+el.dataset.d||-1); if(j<0||j>=items.length) return; [items[j],items[i]]=[items[i],items[j]]; saveTarget(el.dataset.target); render(); },
   loadPrev(el){ const it=day().workout.items[+el.dataset.i]; const pr=prevRecord(it.name,ui.date); if(!pr) return;
-    let n=0; it.sets.forEach((s,k)=>{ const p=pr.sets[k]||pr.sets[pr.sets.length-1]; if(!s.done&&p){ s.w=p.w; s.r=p.r; n++; } });
+    let n=0,wk=0; it.sets.forEach(s=>{ if(s.kind==="w") return; const p=pr.sets[wk]||pr.sets[pr.sets.length-1]; wk++; if(!s.done&&p){ s.w=p.w; s.r=p.r; n++; } }); // 워밍업은 건드리지 않고 본 세트끼리 순서를 맞춘다
     markDirty(dayKey(ui.date)); render(); buzz(8); toast(n?"지난 기록을 불러왔어요":"이미 끝낸 세트는 그대로 뒀어요"); },
   toggleSet(el){ const it=day().workout.items[+el.dataset.i]; const s=it.sets[+el.dataset.k]; s.done=!s.done; if(s.done) s.t=Date.now(); else { delete s.t; delete s.pr; }
     primeSound(); ui.justDone=s.done?el.dataset.i+"-"+el.dataset.k:null; buzz(s.done?14:6); setTimeout(()=>{ui.justDone=null;},400);
-    if(s.done&&exType(it)==="w"){ const prev=bestE1rmBefore(it.name,ui.date,s); const cur=e1rm(+s.w,+s.r); if(prev>0&&cur>prev+.01){ s.pr=true; buzz([20,60,30]); toast(`신기록! ${it.name} 추정 1RM ${r1(cur)}kg (이전 ${r1(prev)}kg)`); } } markDirty(dayKey(ui.date)); render(); if(s.done&&exType(it)!=="t"){ const base=it.rest||exInfo(it)?.rest||90; startTimer(base+(String(s.rir)==="0"?30:0)); } },
+    if(s.done&&exType(it)==="w"&&s.kind!=="w"){ const prev=bestE1rmBefore(it.name,ui.date,s); const cur=e1rm(+s.w,+s.r); if(prev>0&&cur>prev+.01){ s.pr=true; buzz([20,60,30]); toast(`신기록! ${it.name} 추정 1RM ${r1(cur)}kg (이전 ${r1(prev)}kg)`); } } markDirty(dayKey(ui.date)); render(); if(s.done&&exType(it)!=="t"){ const base=it.rest||exInfo(it)?.rest||90; const nextSet=it.sets[+el.dataset.k+1]; const items=day().workout.items, ii=+el.dataset.i;
+      // 다음 세트가 드롭세트면 쉬지 않고 바로, 슈퍼세트의 앞 운동이면 다음 운동으로 넘어간다
+      if(nextSet&&nextSet.kind==="d"&&!nextSet.done){ toast("드롭세트 — 무게를 내리고 바로 이어서"); }
+      else if(it.ss&&items[ii+1]){ toast(`슈퍼세트 — 바로 ${items[ii+1].name}`); }
+      else startTimer(s.kind==="w"?Math.min(60,base):base+(String(s.rir)==="0"?30:0)); } },
+  setKind(el){ const tg=el.dataset.target, it=getItems(tg)[+el.dataset.i], s=it.sets[+el.dataset.k]; const order=["","w","d"]; const nx=order[(order.indexOf(s.kind||"")+1)%3];
+    if(nx) s.kind=nx; else delete s.kind; if(nx==="w") delete s.pr; saveTarget(tg); render(); buzz(6); toast(nx==="w"?"워밍업 세트 — 볼륨·세트 수·회복도 계산에서 빠져요":nx==="d"?"드롭세트 — 앞 세트 뒤에 쉬지 않고 이어서 해요":"본 세트"); },
+  superset(el){ const tg=el.dataset.target, items=getItems(tg), i=+el.dataset.i, it=items[i]; if(!it.ss&&i>=items.length-1) return toast("아래에 묶을 운동이 없어요");
+    if(it.ss) delete it.ss; else it.ss=true; saveTarget(tg); render(); toast(it.ss?`${it.name} + ${items[i+1].name} 슈퍼세트 — 두 번째 운동을 끝낸 뒤에만 휴식 타이머가 떠요`:"슈퍼세트를 풀었어요"); },
   delSet(el){ const items=getItems(el.dataset.target); items[+el.dataset.i].sets.splice(+el.dataset.k,1); saveTarget(el.dataset.target); render(); },
   setCount(el){ const it=getItems(el.dataset.target)[+el.dataset.i]; if(+el.dataset.d>0){ const last=it.sets[it.sets.length-1]||{w:0,r:10}; it.sets.push({w:last.w,r:last.r,done:false}); } else { const k=it.sets.map(s=>s.done).lastIndexOf(false); if(it.sets.length>1) it.sets.splice(k>=0?k:it.sets.length-1,1); } saveTarget(el.dataset.target); render(); },
   bulk(el){ const it=getItems(el.dataset.target)[+el.dataset.i]; const f=el.dataset.f, d=+el.dataset.d; it.sets.forEach(s=>{ if(!s.done) s[f]=Math.max(0,r1((+s[f]||0)+d)); }); saveTarget(el.dataset.target); render(); },
-  applySug(el){ const it=day().workout.items[+el.dataset.i]; it.sets.forEach(s=>{ if(!s.done){ s.w=+el.dataset.w; s.r=+el.dataset.r; } }); markDirty(dayKey(ui.date)); render(); toast("추천 무게·횟수를 적용했어요"); },
+  applySug(el){ const it=day().workout.items[+el.dataset.i]; it.sets.forEach(s=>{ if(!s.done&&s.kind!=="w"){ s.w=+el.dataset.w; s.r=+el.dataset.r; } }); markDirty(dayKey(ui.date)); render(); toast("추천 무게·횟수를 적용했어요"); },
   saveToPlan(){ const wi=wIdx(ui.date); const items=day().workout.items; S.main.plan[wi].items=cloneItems(items); if(S.main.plan[wi].title==="휴식") S.main.plan[wi].title=day().workout.planTitle||"운동"; markDirty("main"); toast(`${WD[wi]}요일 플랜에 반영했어요`); },
   genRecovery(){
     const d=day(); if(d.workout.items.some(it=>doneSets(it).length)) return toast("이미 기록 중인 운동이 있어요");

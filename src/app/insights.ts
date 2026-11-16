@@ -4,7 +4,7 @@
  */
 import { S, ui } from "./state";
 import { addDays, esc, parseD, r0, r1, wIdx } from "./util";
-import { doneSets, e1rm, exType, itemVolume, recovery, rirOf } from "./training";
+import { workSets, e1rm, exType, itemVolume, recovery, rirOf } from "./training";
 import { MGROUP, monthCal, recoveryCards } from "./views";
 import { FIG } from "../engine/fig.js";
 import { EX } from "../data/exercises.js";
@@ -23,7 +23,7 @@ export function weeklyStats(ref: string, n = 8): Week[] {
     const start = addDays(mondayOf(ref), -7 * w);
     const wk: Week = { start, vol: 0, sets: 0, rirSum: 0, rirN: 0, hard: 0 };
     for (let i = 0; i < 7; i++) for (const it of itemsOf(addDays(start, i))) {
-      const ds = doneSets(it) as any[];
+      const ds = workSets(it) as any[];
       if (exType(it) === "t") continue;
       wk.vol += itemVolume(it); wk.sets += ds.length;
       for (const s of ds) if (s.rir !== "" && s.rir != null) { const r = rirOf(s); wk.rirSum += r; wk.rirN++; if (r <= 1) wk.hard++; }
@@ -40,7 +40,7 @@ export function liftTrends(max = 6): Lift[] {
   const by = new Map<string, { d: string; v: number }[]>();
   for (const d of Object.keys(S.days).sort()) for (const it of itemsOf(d)) {
     if (exType(it) !== "w") continue;
-    const best = (doneSets(it) as any[]).reduce((a, s) => Math.max(a, e1rm(+s.w, +s.r)), 0);
+    const best = (workSets(it) as any[]).reduce((a, s) => Math.max(a, e1rm(+s.w, +s.r)), 0);
     if (best > 0) { const a = by.get(String(it.name)) || []; a.push({ d, v: best }); by.set(String(it.name), a); }
   }
   return [...by.entries()].filter(([, p]) => p.length >= 2)

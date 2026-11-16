@@ -49,5 +49,22 @@ check("루틴 목록에 플랜의 운동하는 요일이 모두 보인다", n ==
 const pick = await p.evaluate(() => { const g = window.gymlog; const w = g.wIdx(g.ui.date); return g.S.main.plan.findIndex((d, i) => i !== w && d.items.length); });
 await p.click(`#sheet [data-act=loadPlan][data-i="${pick}"]`); await p.waitForTimeout(250);
 check("다른 요일의 루틴이 오늘 운동으로 들어온다", await p.evaluate((i) => { const g = window.gymlog; return g.day().workout.items.length === g.S.main.plan[i].items.length && g.day().workout.items[0].name === g.S.main.plan[i].items[0].name && !document.getElementById("sheet").classList.contains("open"); }, pick));
+// 5) 세트 종류·슈퍼세트
+await seed(); await p.evaluate(() => { window.gymlog.A.timerStop(); window.gymlog.render(); });
+await p.click('[data-act=setKind][data-i="0"][data-k="0"]'); await p.waitForTimeout(150);
+check("세트 번호를 누르면 워밍업(W)이 되고 본 세트 번호는 1부터 다시 센다", await p.evaluate(() => [...document.querySelectorAll('[data-act=setKind][data-i="0"]')].map(e => e.firstChild.textContent.trim()).join() === "W,1,2"));
+await p.click('[data-act=toggleSet][data-i="0"][data-k="0"]'); await p.waitForTimeout(200);
+check("워밍업 세트는 볼륨에 들어가지 않는다", await p.evaluate(() => window.gymlog.itemVolume(window.gymlog.day().workout.items[0]) === 0 && document.getElementById("sumVol").textContent === "0"));
+await p.evaluate(() => window.gymlog.A.timerStop());
+await p.click('[data-act=setKind][data-i="0"][data-k="2"]'); await p.click('[data-act=setKind][data-i="0"][data-k="2"]'); await p.waitForTimeout(150);   // 3번째 세트 → 드롭
+await p.click('[data-act=toggleSet][data-i="0"][data-k="1"]'); await p.waitForTimeout(250);
+check("다음 세트가 드롭세트면 휴식 타이머가 뜨지 않는다", await p.evaluate(() => !document.getElementById("timer").classList.contains("on")));
+check("본 세트는 볼륨에 들어간다 (60×8)", await p.evaluate(() => window.gymlog.itemVolume(window.gymlog.day().workout.items[0]) === 480));
+await p.click('[data-act=superset][data-i="1"]'); await p.waitForTimeout(150);
+await p.click('[data-act=toggleSet][data-i="1"][data-k="0"]'); await p.waitForTimeout(250);
+check("슈퍼세트의 앞 운동을 끝내면 타이머 없이 다음 운동으로", await p.evaluate(() => !document.getElementById("timer").classList.contains("on")));
+await p.click('[data-act=toggleSet][data-i="2"][data-k="0"]'); await p.waitForTimeout(250);
+check("슈퍼세트의 뒤 운동을 끝내면 타이머가 뜬다", await p.evaluate(() => document.getElementById("timer").classList.contains("on")));
+await p.evaluate(() => window.gymlog.A.timerStop());
 check("페이지 오류 없음", errs.length === 0, errs.join(" | "));
 await b.close(); await server.close(); console.log(failed ? `\n실패 ${failed}건` : "\n모두 통과"); process.exit(failed ? 1 : 0);

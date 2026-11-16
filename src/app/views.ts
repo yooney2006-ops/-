@@ -8,7 +8,7 @@ import { EXMAP, PARTS, WD } from "./catalog";
 import { GOALS, calcTargets, sumMeals } from "./goals";
 import { openSheet } from "./sheets";
 import { S, ui } from "./state";
-import { doneSets, e1rm, exInfo, exPart, exType, feedbackHtml, groupWeights, itemVolume, planCheckHtml, prevRecord, recovery, suggestNext } from "./training";
+import { doneSets, workSets, e1rm, exInfo, exPart, exType, feedbackHtml, groupWeights, itemVolume, planCheckHtml, prevRecord, recovery, suggestNext } from "./training";
 import { addDays, day, esc, md, pad, parseD, peekDay, r0, r1, wIdx, ymd } from "./util";
 import { BRANDS, EVIDENCE, EX, MUSCLE_KO } from "../data/exercises.js";
 import { FIG } from "../engine/fig.js";
@@ -30,7 +30,7 @@ export function render(){
 }
 /* 오늘 자극한 근육 지도 (Hevy 참고) */
 export function dayMuscles(d){
-  const w={}; (peekDay(d).workout?.items||[]).forEach(it=>{ const e=exInfo(it); const n=doneSets(it).length; if(!e||!n||e.type==="t") return; e.prim.forEach(k=>w[k]=(w[k]||0)+n); e.sec.forEach(k=>w[k]=(w[k]||0)+n*.5); });
+  const w={}; (peekDay(d).workout?.items||[]).forEach(it=>{ const e=exInfo(it); const n=workSets(it).length; if(!e||!n||e.type==="t") return; e.prim.forEach(k=>w[k]=(w[k]||0)+n); e.sec.forEach(k=>w[k]=(w[k]||0)+n*.5); });
   return w;
 }
 export function initMuscleMaps(){
@@ -174,15 +174,16 @@ export function exCard(it,i,mode){
   let sug=null, pr=null;
   if(log){ sug=suggestNext(it,ui.date); pr=prevRecord(it.name,ui.date); }
   const best=log&&t==="w"?bestE1rm(it.name):0;
-  let h=`<section class="card ex"><div class="ex-head"><div><div class="ex-title">${esc(it.name)}</div><div class="row xs muted" style="margin-top:2px"><span class="chip">${esc(exPart(it))}</span>${e&&e.stretch?`<span class="chip badge-s" title="${esc(e.stretch.note)}">스트레치</span>`:""}${it.rirT?`<span class="chip">목표 RIR ${esc(it.rirT)}</span>`:""}${e?`<span>${esc(e.equip)}</span>`:""}${best?`<span>· 추정 1RM 최고 <b class="num">${r1(best)}</b>kg</span>`:""}</div></div>
+  let h=`<section class="card ex${it.ss?" ss-top":""}"><div class="ex-head"><div><div class="ex-title">${esc(it.name)}</div><div class="row xs muted" style="margin-top:2px"><span class="chip">${esc(exPart(it))}</span>${e&&e.stretch?`<span class="chip badge-s" title="${esc(e.stretch.note)}">스트레치</span>`:""}${it.ss?`<span class="chip ss">슈퍼세트 ↓</span>`:""}${it.rirT?`<span class="chip">목표 RIR ${esc(it.rirT)}</span>`:""}${e?`<span>${esc(e.equip)}</span>`:""}${best?`<span>· 추정 1RM 최고 <b class="num">${r1(best)}</b>kg</span>`:""}</div></div>
     <div class="row"><button class="btn sm ghost" data-act="tips" data-ex="${esc(it.exId||"")}" data-name="${esc(it.name)}">팁</button>${log?`<button class="btn sm ghost" data-act="swap" data-i="${i}" data-target="${mode}">교체</button>`:""}<button class="btn sm icon ghost" data-act="moveEx" data-i="${i}" data-d="-1" data-target="${mode}" aria-label="위로">↑</button><button class="btn sm icon ghost" data-act="moveEx" data-i="${i}" data-d="1" data-target="${mode}" aria-label="아래로">↓</button><button class="btn sm icon ghost" data-act="delEx" data-i="${i}" data-target="${mode}" aria-label="삭제">✕</button></div></div>`;
   if(log&&pr){ h+=`<div class="prevrow"><span class="xs muted">지난 기록 ${pr.date.slice(5).replace("-","/")} · ${pr.sets.map(s=>t==="w"?`${s.w}×${s.r}`:`${s.r}${unitR}`).join(", ")}</span><button class="btn sm" data-act="loadPrev" data-i="${i}">불러오기</button></div>`; }
   if(sug){ h+=`<div class="hint" style="margin-top:6px">추천: ${esc(sug.msg)} <button class="why" data-act="why" data-rule="overload,rir">근거</button> <button class="btn sm" data-act="applySug" data-i="${i}" data-w="${sug.w}" data-r="${sug.r}">적용</button></div>`; }
   const lg=log&&t!=="t"?" lg":"";
   h+=`<div class="sets"><div class="set hdr${lg}"><span style="text-align:center">세트</span><span style="text-align:center">${t==="w"?"무게(kg)":t==="t"?"—":"추가중량"}</span><span style="text-align:center">${t==="t"?"시간(분)":"횟수"}</span>${lg?`<span style="text-align:center" title="남은 반복 수: 몇 개 더 할 수 있었나">RIR</span>`:""}<span style="text-align:center">${log?"완료":""}</span></div>`;
-  (it.sets||[]).forEach((s,k)=>{
-    const pv=log&&pr&&pr.sets[k]?(t==="w"?`${pr.sets[k].w}×${pr.sets[k].r}`:`${pr.sets[k].r}`):"";
-    h+=`<div class="set${lg} ${s.done?"done":""} ${ui.justDone===i+"-"+k?"just":""}"><span class="n" ${s.pr?'title="신기록" style="color:var(--accent)"':""}>${s.pr?"★":k+1}${pv?`<small title="지난번 같은 세트">${pv}</small>`:""}</span>
+  let wn=0; // 본 세트 번호 (워밍업은 건너뜀)
+  (it.sets||[]).forEach((s,k)=>{ const kind=s.kind||""; if(kind!=="w") wn++; const lab=kind==="w"?"W":kind==="d"?"D":wn;
+    const pk=wn-1; const pv=log&&pr&&kind!=="w"&&pr.sets[pk]?(t==="w"?`${pr.sets[pk].w}×${pr.sets[pk].r}`:`${pr.sets[pk].r}`):"";
+    h+=`<div class="set${lg} ${s.done?"done":""} ${kind?"k-"+kind:""} ${ui.justDone===i+"-"+k?"just":""}"><button class="n" data-act="setKind" data-i="${i}" data-k="${k}" data-target="${mode}" aria-label="${k+1}번째 세트 종류: ${kind==="w"?"워밍업":kind==="d"?"드롭세트":"본 세트"} (누르면 바뀜)" ${s.pr?'title="신기록" style="color:var(--accent)"':""}>${s.pr?"★":lab}${pv?`<small title="지난번 같은 세트">${pv}</small>`:""}</button>
     <input type="number" inputmode="decimal" step="0.5" min="0" value="${s.w}" ${t==="t"?"disabled":""} data-chg="set" data-target="${mode}" data-i="${i}" data-k="${k}" data-f="w" aria-label="${k+1}세트 무게">
     <input type="number" inputmode="numeric" step="1" min="0" value="${s.r}" data-chg="set" data-target="${mode}" data-i="${i}" data-k="${k}" data-f="r" aria-label="${k+1}세트 ${unitR}">
     ${lg?`<select data-chg="rir" data-i="${i}" data-k="${k}" aria-label="${k+1}세트 RIR">${["","0","1","2","3","4"].map(v=>`<option value="${v}" ${String(s.rir??"")===v?"selected":""}>${v===""?"–":v==="4"?"4+":v}</option>`).join("")}</select>`:""}
@@ -193,15 +194,16 @@ export function exCard(it,i,mode){
   if(t==="w") h+=`<button class="btn sm" data-act="bulk" data-i="${i}" data-f="w" data-d="-2.5" data-target="${mode}">무게 −2.5</button><button class="btn sm" data-act="bulk" data-i="${i}" data-f="w" data-d="2.5" data-target="${mode}">무게 +2.5</button>`;
   h+=`<button class="btn sm" data-act="bulk" data-i="${i}" data-f="r" data-d="-1" data-target="${mode}">${unitR} −1</button><button class="btn sm" data-act="bulk" data-i="${i}" data-f="r" data-d="1" data-target="${mode}">${unitR} +1</button>`;
   if(t!=="t") h+=`<label class="row xs muted" style="gap:4px">휴식<select data-chg="rest" data-target="${mode}" data-i="${i}" style="width:auto;padding:4px 6px">${[60,90,120,150,180,240].map(v=>`<option value="${v}" ${(it.rest||e?.rest||90)==v?"selected":""}>${Math.floor(v/60)}:${pad(v%60)}</option>`).join("")}</select></label>`;
-  if(log) h+=`<span class="xs muted" style="align-self:center">일괄 조절은 아직 안 끝낸 세트에만 적용</span>`;
+  h+=`<button class="btn sm ${it.ss?"primary":""}" data-act="superset" data-i="${i}" data-target="${mode}" aria-pressed="${!!it.ss}">${it.ss?"슈퍼세트 해제":"다음 운동과 슈퍼세트"}</button>`;
+  if(log) h+=`<span class="xs muted" style="align-self:center">세트 번호를 누르면 워밍업(W)·드롭(D)으로 바뀌어요 · 일괄 조절은 안 끝낸 세트에만</span>`;
   h+=`</div></section>`;
   return h;
 }
 export function bestE1rmBefore(name,date,exclude){
-  let b=0; Object.keys(S.days).forEach(d=>{ (S.days[d].workout?.items||[]).forEach(it=>{ if(it.name!==name) return; doneSets(it).forEach(st=>{ if(st===exclude) return; if(d>date) return; b=Math.max(b,e1rm(+st.w,+st.r)); }); }); }); return b;
+  let b=0; Object.keys(S.days).forEach(d=>{ (S.days[d].workout?.items||[]).forEach(it=>{ if(it.name!==name) return; workSets(it).forEach(st=>{ if(st===exclude) return; if(d>date) return; b=Math.max(b,e1rm(+st.w,+st.r)); }); }); }); return b;
 }
 export function bestE1rm(name){
-  let b=0; Object.values(S.days).forEach(v=>(v.workout?.items||[]).forEach(it=>{ if(it.name===name) doneSets(it).forEach(s=>{ b=Math.max(b,e1rm(+s.w,+s.r)); }); })); return b;
+  let b=0; Object.values(S.days).forEach(v=>(v.workout?.items||[]).forEach(it=>{ if(it.name===name) workSets(it).forEach(s=>{ b=Math.max(b,e1rm(+s.w,+s.r)); }); })); return b;
 }
 
 export const MGROUP=[["가슴",["chest","uchest"]],["등",["lats","rhom","traps","erect"]],["어깨",["fdelt","sdelt","rdelt"]],["이두",["bi"]],["삼두",["tri"]],["대퇴사두",["quad"]],["햄스트링",["ham"]],["둔근",["glute","abd"]],["종아리",["calf"]],["복근",["abs","obl"]]];
@@ -209,7 +211,7 @@ export const PART2G={"가슴":"가슴","등":"등","어깨":"어깨","팔":"이�
 export function monthCal(){
   const d0=parseD(ui.date); const y=d0.getFullYear(), m=d0.getMonth(); const first=new Date(y,m,1), days=new Date(y,m+1,0).getDate(); const off=(first.getDay()+6)%7;
   let n=0; let cells=""; for(let i=0;i<off;i++) cells+=`<span></span>`;
-  for(let dd=1;dd<=days;dd++){ const k=ymd(new Date(y,m,dd)); const sets=(S.days[k]?.workout?.items||[]).reduce((a,it)=>a+doneSets(it).length,0); if(sets) n++;
+  for(let dd=1;dd<=days;dd++){ const k=ymd(new Date(y,m,dd)); const sets=(S.days[k]?.workout?.items||[]).reduce((a,it)=>a+workSets(it).length,0); if(sets) n++;
     const lvl=sets===0?0:sets<10?1:sets<20?2:3; const bg=["var(--surface-2)","color-mix(in srgb,var(--accent) 30%,var(--surface))","color-mix(in srgb,var(--accent) 60%,var(--surface))","var(--accent)"][lvl];
     cells+=`<button class="calc" data-act="goDate" data-date="${k}" style="background:${bg};${k===ui.date?"outline:2px solid var(--ink);":""}color:${lvl>=2?"#fff":"var(--ink)"}" aria-label="${m+1}월 ${dd}일 ${sets}세트">${dd}</button>`; }
   return `<section class="card"><div class="spread"><h2>${m+1}월 운동 기록</h2><span class="small muted">운동한 날 <b class="num" style="color:var(--ink)">${n}</b>일</span></div>
@@ -217,13 +219,13 @@ export function monthCal(){
 }
 export function weekFreq(ref){ const mon=addDays(ref,-wIdx(ref)); const f={};
   for(let i=0;i<7;i++){ const v=S.days[addDays(mon,i)]; if(!v||!v.workout) continue; const day={};
-    (v.workout.items||[]).forEach(it=>{ const n=doneSets(it).length; if(!n) return; const W=groupWeights(it); for(const g in W) day[g]=(day[g]||0)+W[g]*n; });
+    (v.workout.items||[]).forEach(it=>{ const n=workSets(it).length; if(!n) return; const W=groupWeights(it); for(const g in W) day[g]=(day[g]||0)+W[g]*n; });
     for(const g in day) if(day[g]>=1) f[g]=(f[g]||0)+1; }
   return f; }
 export function weekSets(ref){
   const mon=addDays(ref,-wIdx(ref)); const c={};
   for(let i=0;i<7;i++){ const v=S.days[addDays(mon,i)]; if(!v||!v.workout) continue;
-    (v.workout.items||[]).forEach(it=>{ const n=doneSets(it).length; if(!n) return; const e=exInfo(it);
+    (v.workout.items||[]).forEach(it=>{ const n=workSets(it).length; if(!n) return; const e=exInfo(it);
       if(!e){ const g=PART2G[exPart(it)]; if(g) c[g]=(c[g]||0)+n; return; }
       MGROUP.forEach(([g,ks])=>{ if(e.prim.some(k=>ks.includes(k))) c[g]=(c[g]||0)+n; else if(e.sec.some(k=>ks.includes(k))) c[g]=(c[g]||0)+n*.5; });
     });
@@ -302,7 +304,7 @@ export function guideCards(list){
   return `<div class="glist">`+list.map(e=>`<button class="gx" data-act="exDetail" data-id="${e.id}"><span class="nm">${esc(e.name)}</span><span class="row" style="gap:4px"><span class="chip">${e.part}</span><span class="chip">${e.brand?esc(e.brand==="해머 스트렝스"?"해머":"노틸러스"):e.cat}</span></span><span class="tg">${tgLine(e)} <span class="muted">· ${esc(e.equip)}</span>${e.stretch?` <span class="chip badge-s" style="font-size:11px">스트레치</span>`:""}</span></button>`).join("")+`</div>`;
 }
 export function exHistory(name){
-  const out=[];Object.keys(S.days).sort().forEach(d=>{(S.days[d].workout?.items||[]).forEach(it=>{if(it.name!==name)return;const ds=doneSets(it);if(!ds.length)return;const best=ds.reduce((a,s)=>Math.max(a,e1rm(+s.w,+s.r)),0);const top=ds.reduce((a,s)=>(+s.w>+a.w||(+s.w===+a.w&&+s.r>+a.r))?s:a,ds[0]);out.push({d,best,top,n:ds.length,vol:itemVolume(it)});});});
+  const out=[];Object.keys(S.days).sort().forEach(d=>{(S.days[d].workout?.items||[]).forEach(it=>{if(it.name!==name)return;const ds=workSets(it);if(!ds.length)return;const best=ds.reduce((a,s)=>Math.max(a,e1rm(+s.w,+s.r)),0);const top=ds.reduce((a,s)=>(+s.w>+a.w||(+s.w===+a.w&&+s.r>+a.r))?s:a,ds[0]);out.push({d,best,top,n:ds.length,vol:itemVolume(it)});});});
   return out;
 }
 export function histChart(h){

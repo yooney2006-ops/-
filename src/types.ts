@@ -30,6 +30,8 @@ export interface WorkoutSet {
   r?: number | string;
   done?: boolean;
   rir?: string;
+  /** 세트 종류: 없음 = 본 세트, w = 워밍업(통계 제외), d = 드롭세트 */
+  kind?: "w" | "d";
   [k: string]: unknown;
 }
 export interface WorkoutItem {
@@ -37,6 +39,8 @@ export interface WorkoutItem {
   exId?: string;
   name?: string;
   sets: WorkoutSet[];
+  /** 다음 운동과 슈퍼세트로 묶음 */
+  ss?: boolean;
   [k: string]: unknown;
 }
 export interface PlanDay {
