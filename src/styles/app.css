@@ -243,3 +243,14 @@ canvas.heat{width:100%;max-width:210px;height:300px;display:block;margin:0 auto}
 .chip.ok{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
 .chip.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}
 .tbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}.tbl th,.tbl td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right}.tbl th:first-child,.tbl td:first-child{text-align:left}.tbl th{font-size:12px;color:var(--muted)}
+
+/* 운동 카드: 땀 난 손으로도 누를 수 있는 크기 (44px 이상), 삭제는 다른 버튼과 떨어뜨림 */
+.ex-head{flex-wrap:wrap}
+.ex-head>.row{margin-left:auto;gap:6px;flex-wrap:nowrap}
+.ex-head .btn{min-width:var(--tap);min-height:var(--tap)}
+.ex-head [data-act=delEx]{margin-left:10px;color:var(--bad)}
+.adjust .btn{min-height:var(--tap);padding-inline:12px}
+.prevrow .btn{min-height:40px}
+.toast .tact{margin-left:12px;background:transparent;border:1px solid color-mix(in srgb,var(--bg) 45%,transparent);color:var(--bg);border-radius:8px;padding:6px 12px;font-weight:700;cursor:pointer;min-height:36px}
+.toast{top:auto;bottom:calc(var(--nav-h) + 76px);max-width:92vw}
+@media (min-width:761px){ .toast{bottom:84px} }

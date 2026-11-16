@@ -1,5 +1,6 @@
 // @ts-nocheck — 아티팩트 원본에서 그대로 옮긴 코드. 타입은 점진적으로 붙인다.
 import { viewInsights, initHeatMaps } from "./insights";
+import { keepAwake } from "../platform/session";
 import { evidenceSectionHtml, dietRuleHtml, exRuleIds } from "./evidence";
 import { searchExercises, exMeta } from "../platform/kb";
 import { logMiss } from "../platform/search";
@@ -23,6 +24,8 @@ export function render(){
   (ui.maps||[]).forEach(m=>m.stop()); ui.maps=[];
   v.innerHTML = ui.tab==="food"?viewFood(): ui.tab==="workout"?viewWorkout(): ui.tab==="plan"?viewPlan(): ui.tab==="stats"?viewInsights(): viewGuide();
   if(ui.tab==="workout") initMuscleMaps();
+  // 오늘 운동이 진행 중(완료 세트도 있고 남은 세트도 있음)인 동안은 화면이 꺼지지 않게
+  { const its=ui.tab==="workout"&&ui.date===ymd(new Date())?(peekDay(ui.date).workout?.items||[]):[]; const all=its.flatMap(it=>it.sets||[]); keepAwake(all.some(x=>x.done)&&all.some(x=>!x.done)); }
   if(ui.tab==="stats") initHeatMaps();
 }
 /* 오늘 자극한 근육 지도 (Hevy 참고) */
@@ -118,8 +121,8 @@ export function viewWorkout(){
   // 오늘 요약
   const total=items.reduce((a,it)=>a+(it.sets||[]).length,0), done=items.reduce((a,it)=>a+doneSets(it).length,0), vol=items.reduce((a,it)=>a+itemVolume(it),0);
   html+=`<section class="card"><div class="spread"><div><h2>${WD[wi]}요일 운동${pd&&pd.items.length?` · <span class="muted">플랜: ${esc(pd.title)}</span>`:""}</h2>
-    <div class="row small" style="margin-top:4px"><span>완료 세트 <b class="num">${done}</b>/<span class="num">${total}</span></span><span class="muted">·</span><span>총 볼륨 <b class="num">${r0(vol).toLocaleString()}</b> kg</span></div></div>
-    <div class="row">${pd&&pd.items.length?`<button class="btn sm" data-act="loadPlan">${items.length?"플랜 다시 불러오기":"플랜 불러오기"}</button>`:""}<button class="btn sm primary" data-act="addEx" data-target="log">+ 운동 추가</button></div></div></section>`;
+    <div class="row small" style="margin-top:4px"><span>완료 세트 <b class="num">${done}</b>/<span class="num">${total}</span></span><span class="muted">·</span><span>총 볼륨 <b class="num" id="sumVol">${r0(vol).toLocaleString()}</b> kg</span></div></div>
+    <div class="row">${pd&&pd.items.length?`<button class="btn sm" data-act="loadPlan">${items.length?"플랜 다시 불러오기":"플랜 불러오기"}</button>`:""}<button class="btn sm" data-act="pickPlan">다른 요일 루틴</button><button class="btn sm primary" data-act="addEx" data-target="log">+ 운동 추가</button></div></div></section>`;
   if(!items.length){
     html+=`<div class="empty">${pd&&pd.items.length?`오늘은 <b>${esc(pd.title)}</b> 날이에요. "플랜 불러오기"로 시작하세요.`:"오늘은 플랜상 휴식일이에요. 운동을 직접 추가하거나 회복도 기반으로 만들 수 있어요."}</div>`;
   }else{
@@ -152,6 +155,19 @@ export function recoveryCards(){
   ins+=`</div><p class="xs muted" style="margin:8px 0 0">주동근 1세트 = 1, 보조근 = 0.5 (fractional 방식, Pelland 2025) · 완료한 세트만 · 오른쪽 숫자 = 이번 주 훈련 횟수</p></section>`;
   return ins;
 }
+/* 원판 계산 (다음에 할 세트 기준). 세트 값이 바뀌면 이 부분만 다시 그린다 */
+export function platesHtml(it){
+  const t=exType(it), e=exInfo(it);
+  if(t==="w"&&e&&/바벨|스미스|EZ바/.test(e.equip)){ const nx=(it.sets||[]).find(x=>!x.done)||it.sets[0]; const pc=nx?plateCalc(+nx.w,/스미스/.test(e.equip)?0:/EZ/.test(e.equip)?10:20):null;
+    if(pc) return `<div class="plates" aria-hidden="true"><i class="pbar"></i>${pc.out.map(w=>`<i class="pl p${String(w).replace(".","_")}">${w}</i>`).join("")}<i class="pcol"></i></div><div class="xs muted" style="margin-top:4px">원판 (${nx.w}kg, 한쪽): <b class="num" style="color:var(--ink)">${pc.out.join(" + ")||"-"}</b>${pc.rest>0?` · ${pc.rest}kg 남음`:""} · ${/스미스/.test(e.equip)?"스미스 바 무게는 기종마다 달라요":/EZ/.test(e.equip)?"EZ바 10kg 기준":"바 20kg 기준"}</div>`; }
+  return "";
+}
+/* 세트 값이 바뀌었을 때: 화면 전체를 다시 그리지 않고 원판 계산과 총 볼륨만 갱신한다(입력 포커스 유지) */
+export function refreshCard(i){
+  const items=peekDay(ui.date).workout?.items||[]; const it=items[i]; if(!it) return;
+  const pe=document.getElementById("plates-"+i); if(pe) pe.innerHTML=platesHtml(it);
+  const sv=document.getElementById("sumVol"); if(sv) sv.textContent=r0(items.reduce((a,x)=>a+itemVolume(x),0)).toLocaleString();
+}
 export function exCard(it,i,mode){
   const t=exType(it); const e=exInfo(it); const log=mode==="log";
   const unitW=t==="w"?"kg":"", unitR=t==="t"?"분":"회";
@@ -159,7 +175,7 @@ export function exCard(it,i,mode){
   if(log){ sug=suggestNext(it,ui.date); pr=prevRecord(it.name,ui.date); }
   const best=log&&t==="w"?bestE1rm(it.name):0;
   let h=`<section class="card ex"><div class="ex-head"><div><div class="ex-title">${esc(it.name)}</div><div class="row xs muted" style="margin-top:2px"><span class="chip">${esc(exPart(it))}</span>${e&&e.stretch?`<span class="chip badge-s" title="${esc(e.stretch.note)}">스트레치</span>`:""}${it.rirT?`<span class="chip">목표 RIR ${esc(it.rirT)}</span>`:""}${e?`<span>${esc(e.equip)}</span>`:""}${best?`<span>· 추정 1RM 최고 <b class="num">${r1(best)}</b>kg</span>`:""}</div></div>
-    <div class="row"><button class="btn sm ghost" data-act="tips" data-ex="${esc(it.exId||"")}" data-name="${esc(it.name)}">팁</button>${log?`<button class="btn sm ghost" data-act="swap" data-i="${i}" data-target="${mode}">교체</button>`:""}<button class="btn sm icon ghost" data-act="moveEx" data-i="${i}" data-d="-1" data-target="${mode}" aria-label="위로">↑</button><button class="btn sm icon ghost" data-act="delEx" data-i="${i}" data-target="${mode}" aria-label="삭제">✕</button></div></div>`;
+    <div class="row"><button class="btn sm ghost" data-act="tips" data-ex="${esc(it.exId||"")}" data-name="${esc(it.name)}">팁</button>${log?`<button class="btn sm ghost" data-act="swap" data-i="${i}" data-target="${mode}">교체</button>`:""}<button class="btn sm icon ghost" data-act="moveEx" data-i="${i}" data-d="-1" data-target="${mode}" aria-label="위로">↑</button><button class="btn sm icon ghost" data-act="moveEx" data-i="${i}" data-d="1" data-target="${mode}" aria-label="아래로">↓</button><button class="btn sm icon ghost" data-act="delEx" data-i="${i}" data-target="${mode}" aria-label="삭제">✕</button></div></div>`;
   if(log&&pr){ h+=`<div class="prevrow"><span class="xs muted">지난 기록 ${pr.date.slice(5).replace("-","/")} · ${pr.sets.map(s=>t==="w"?`${s.w}×${s.r}`:`${s.r}${unitR}`).join(", ")}</span><button class="btn sm" data-act="loadPrev" data-i="${i}">불러오기</button></div>`; }
   if(sug){ h+=`<div class="hint" style="margin-top:6px">추천: ${esc(sug.msg)} <button class="why" data-act="why" data-rule="overload,rir">근거</button> <button class="btn sm" data-act="applySug" data-i="${i}" data-w="${sug.w}" data-r="${sug.r}">적용</button></div>`; }
   const lg=log&&t!=="t"?" lg":"";
@@ -172,8 +188,7 @@ export function exCard(it,i,mode){
     ${lg?`<select data-chg="rir" data-i="${i}" data-k="${k}" aria-label="${k+1}세트 RIR">${["","0","1","2","3","4"].map(v=>`<option value="${v}" ${String(s.rir??"")===v?"selected":""}>${v===""?"–":v==="4"?"4+":v}</option>`).join("")}</select>`:""}
     ${log?`<button class="check" data-act="toggleSet" data-i="${i}" data-k="${k}" aria-label="${k+1}세트 완료">✓</button>`:`<button class="btn sm icon ghost" data-act="delSet" data-i="${i}" data-k="${k}" data-target="${mode}" aria-label="세트 삭제">−</button>`}</div>`;
   });
-  if(log&&t==="w"&&e&&/바벨|스미스|EZ바/.test(e.equip)){ const nx=(it.sets||[]).find(x=>!x.done)||it.sets[0]; const pc=nx?plateCalc(+nx.w,/스미스/.test(e.equip)?0:/EZ/.test(e.equip)?10:20):null;
-    if(pc) h+=`<div class="plates" aria-hidden="true"><i class="pbar"></i>${pc.out.map(w=>`<i class="pl p${String(w).replace(".","_")}">${w}</i>`).join("")}<i class="pcol"></i></div><div class="xs muted" style="margin-top:4px">원판 (${nx.w}kg, 한쪽): <b class="num" style="color:var(--ink)">${pc.out.join(" + ")||"-"}</b>${pc.rest>0?` · ${pc.rest}kg 남음`:""} · ${/스미스/.test(e.equip)?"스미스 바 무게는 기종마다 달라요":/EZ/.test(e.equip)?"EZ바 10kg 기준":"바 20kg 기준"}</div>`; }
+  if(log) h+=`<div id="plates-${i}">${platesHtml(it)}</div>`;
   h+=`</div><div class="adjust"><button class="btn sm" data-act="setCount" data-i="${i}" data-d="1" data-target="${mode}">+ 세트</button><button class="btn sm" data-act="setCount" data-i="${i}" data-d="-1" data-target="${mode}">− 세트</button>`;
   if(t==="w") h+=`<button class="btn sm" data-act="bulk" data-i="${i}" data-f="w" data-d="-2.5" data-target="${mode}">무게 −2.5</button><button class="btn sm" data-act="bulk" data-i="${i}" data-f="w" data-d="2.5" data-target="${mode}">무게 +2.5</button>`;
   h+=`<button class="btn sm" data-act="bulk" data-i="${i}" data-f="r" data-d="-1" data-target="${mode}">${unitR} −1</button><button class="btn sm" data-act="bulk" data-i="${i}" data-f="r" data-d="1" data-target="${mode}">${unitR} +1</button>`;

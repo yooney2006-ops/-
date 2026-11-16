@@ -3,10 +3,11 @@ import { EXMAP, PARTS, WD } from "./catalog";
 import { GOALS, calcTargets, sumMeals } from "./goals";
 import { NUTRI_SCHEMA, allFoods, closeSheet, drawExSheet, drawFoodSheet, exListHtml, exPreviewHtml, exSheet, foodPick, foodResults, foodSheet, getItems, normFood, openSheet, profileSheet, saveTarget, startPickViewer, tipsSheet } from "./sheets";
 import { S, dayKey, flush, markDirty, replaceState, ui } from "./state";
-import { startTimer, tick, timer, buzz } from "./timer";
+import { startTimer, stopTimer, tick, timer, buzz } from "./timer";
+import { askNotify, primeSound, saveTab } from "../platform/session";
 import { cloneItems, doneSets, e1rm, exInfo, exPart, exType, feedbackHtml, groupWeights, makeTemplate, mkItem, planCheckHtml, planFeedback, planStats, recovery, prevRecord } from "./training";
 import { addDays, day, esc, md, peekDay, r0, r1, toast, uid, wIdx, ymd } from "./util";
-import { MGROUP, bestE1rmBefore, defaultMeal, exDetail, guideCards, guideFilter, lastWeightDate, render } from "./views";
+import { MGROUP, bestE1rmBefore, defaultMeal, exDetail, guideCards, guideFilter, lastWeightDate, render, refreshCard } from "./views";
 import { EX } from "../data/exercises.js";
 import { aiErr, setAIToken } from "../platform/ai";
 import { cachedJSON, cachedText, photoJSON, ingestAIFoods, logHit } from "../platform/aiflow";
@@ -17,7 +18,7 @@ import { countDays, downloadJSON, parseBackup, toBackup } from "../platform/back
 /* 액션
    ============================================================ */
 export const A={
-  tab(el){ ui.tab=el.dataset.tab; ui.editDay=null; render(); window.scrollTo(0,0); },
+  tab(el){ ui.tab=el.dataset.tab; ui.editDay=null; saveTab(ui.tab); render(); window.scrollTo(0,0); },
   day(el){ ui.date=addDays(ui.date,+el.dataset.d); render(); },
   today(){ ui.date=ymd(new Date()); render(); },
   goDate(el){ ui.date=el.dataset.date; render(); },
@@ -99,10 +100,13 @@ export const A={
     ui.aiBusy=false; render();
   },
   /* 운동 기록 */
-  loadPlan(){
-    const d=day(); const p=S.main.plan[wIdx(ui.date)];
+  pickPlan(){ // 다른 요일의 루틴을 골라 오늘 운동으로
+    const wi=wIdx(ui.date);
+    openSheet(`<div class="spread"><h2>루틴 불러오기</h2><button class="btn sm ghost" data-act="closeSheet">닫기</button></div><p class="small muted" style="margin:4px 0 8px">주간 플랜의 어느 요일이든 오늘 운동으로 가져올 수 있어요.</p><div class="results">${S.main.plan.map((p,i)=>p.items.length?`<button class="res" data-act="loadPlan" data-i="${i}" style="min-height:56px"><span><b>${WD[i]}요일 · ${esc(p.title)}</b>${i===wi?` <span class="chip">오늘</span>`:""}<br><span class="xs muted">${p.items.length}개 운동 · ${esc(p.items.slice(0,3).map(it=>it.name).join(", "))}${p.items.length>3?" 외":""}</span></span><span class="num small">${p.items.reduce((a,it)=>a+it.sets.length,0)}세트</span></button>`:"").join("")||`<div class="empty small">저장된 플랜이 없어요. 플랜 탭에서 먼저 만들어 주세요.</div>`}</div>`); },
+  loadPlan(el){
+    const d=day(); const pi=el&&el.dataset.i!=null?+el.dataset.i:wIdx(ui.date); const p=S.main.plan[pi];
     if(d.workout.items.some(it=>doneSets(it).length)&&!ui.confirmLoad){ ui.confirmLoad=true; toast("완료한 세트가 있어요. 한 번 더 누르면 덮어써요"); setTimeout(()=>ui.confirmLoad=false,3000); return; }
-    ui.confirmLoad=false; d.workout.items=cloneItems(p.items); d.workout.planTitle=p.title; markDirty(dayKey(ui.date)); render();
+    ui.confirmLoad=false; d.workout.items=cloneItems(p.items); d.workout.planTitle=p.title; markDirty(dayKey(ui.date)); if(el&&el.dataset.i!=null) closeSheet(); render(); if(pi!==wIdx(ui.date)) toast(`${WD[pi]}요일 루틴(${p.title})을 불러왔어요`);
   },
   addEx(el){ exSheet(el.dataset.target); },
   exPart(el){ ui.sheet.part=el.dataset.p; drawExSheet(); },
@@ -122,13 +126,18 @@ export const A={
     saveTarget(st.target); closeSheet(); render();
   },
   swap(el){ exSheet(el.dataset.target,+el.dataset.i); },
-  delEx(el){ const items=getItems(el.dataset.target); items.splice(+el.dataset.i,1); saveTarget(el.dataset.target); render(); },
-  moveEx(el){ const items=getItems(el.dataset.target); const i=+el.dataset.i; if(i<=0) return; [items[i-1],items[i]]=[items[i],items[i-1]]; saveTarget(el.dataset.target); render(); },
+  delEx(el){ const tg=el.dataset.target, items=getItems(tg), i=+el.dataset.i, it=items[i]; if(!it) return;
+    // 완료한 세트가 있는 운동은 한 번 더 눌러야 지워진다
+    if(tg==="log"&&doneSets(it).length&&ui.confirmDel!==i){ ui.confirmDel=i; toast(`완료한 세트 ${doneSets(it).length}개가 있어요. 한 번 더 누르면 지워요`); setTimeout(()=>{ if(ui.confirmDel===i) ui.confirmDel=null; },3000); return; }
+    ui.confirmDel=null; items.splice(i,1); ui.undoDel={target:tg,i,item:it,date:ui.date,editDay:ui.editDay}; saveTarget(tg); render(); toast(`${it.name} 삭제됨`,{label:"되돌리기",act:"undoDel"}); },
+  undoDel(){ const u=ui.undoDel; if(!u) return; ui.undoDel=null; if(u.target==="log"&&u.date!==ui.date){ ui.date=u.date; } if(u.target!=="log") ui.editDay=u.editDay;
+    const items=getItems(u.target); items.splice(Math.min(u.i,items.length),0,u.item); saveTarget(u.target); render(); toast("되돌렸어요"); },
+  moveEx(el){ const items=getItems(el.dataset.target); const i=+el.dataset.i, j=i+(+el.dataset.d||-1); if(j<0||j>=items.length) return; [items[j],items[i]]=[items[i],items[j]]; saveTarget(el.dataset.target); render(); },
   loadPrev(el){ const it=day().workout.items[+el.dataset.i]; const pr=prevRecord(it.name,ui.date); if(!pr) return;
     let n=0; it.sets.forEach((s,k)=>{ const p=pr.sets[k]||pr.sets[pr.sets.length-1]; if(!s.done&&p){ s.w=p.w; s.r=p.r; n++; } });
     markDirty(dayKey(ui.date)); render(); buzz(8); toast(n?"지난 기록을 불러왔어요":"이미 끝낸 세트는 그대로 뒀어요"); },
   toggleSet(el){ const it=day().workout.items[+el.dataset.i]; const s=it.sets[+el.dataset.k]; s.done=!s.done; if(s.done) s.t=Date.now(); else { delete s.t; delete s.pr; }
-    ui.justDone=s.done?el.dataset.i+"-"+el.dataset.k:null; buzz(s.done?14:6); setTimeout(()=>{ui.justDone=null;},400);
+    primeSound(); ui.justDone=s.done?el.dataset.i+"-"+el.dataset.k:null; buzz(s.done?14:6); setTimeout(()=>{ui.justDone=null;},400);
     if(s.done&&exType(it)==="w"){ const prev=bestE1rmBefore(it.name,ui.date,s); const cur=e1rm(+s.w,+s.r); if(prev>0&&cur>prev+.01){ s.pr=true; buzz([20,60,30]); toast(`신기록! ${it.name} 추정 1RM ${r1(cur)}kg (이전 ${r1(prev)}kg)`); } } markDirty(dayKey(ui.date)); render(); if(s.done&&exType(it)!=="t"){ const base=it.rest||exInfo(it)?.rest||90; startTimer(base+(String(s.rir)==="0"?30:0)); } },
   delSet(el){ const items=getItems(el.dataset.target); items[+el.dataset.i].sets.splice(+el.dataset.k,1); saveTarget(el.dataset.target); render(); },
   setCount(el){ const it=getItems(el.dataset.target)[+el.dataset.i]; if(+el.dataset.d>0){ const last=it.sets[it.sets.length-1]||{w:0,r:10}; it.sets.push({w:last.w,r:last.r,done:false}); } else { const k=it.sets.map(s=>s.done).lastIndexOf(false); if(it.sets.length>1) it.sets.splice(k>=0?k:it.sets.length-1,1); } saveTarget(el.dataset.target); render(); },
@@ -224,7 +233,8 @@ ${planTxt}
     catch(e){ ai.outerHTML=`<p class="small" style="color:var(--bad);margin-top:8px">${esc(aiErr(e))}${kbHtml?" · 위의 자체 DB 결과는 그대로 볼 수 있어요.":""}</p>`; }
   },
   timerAdd(el){ timer.end+= +el.dataset.s*1000; timer.total=Math.max(timer.total||0,(timer.end-Date.now())/1000); tick(); },
-  timerStop(){ clearInterval(timer.iv); document.getElementById("timer").classList.remove("on"); }
+  timerStop(){ stopTimer(); },
+  async askNotify(el){ const r=await askNotify(); el.textContent=r==="granted"?"알림 켜짐":r==="unsupported"?"이 브라우저는 알림 미지원":"알림이 차단돼 있어요"; }
 };
 export function readReq(){
   const g=id=>document.getElementById(id);
@@ -242,7 +252,12 @@ document.addEventListener("click",e=>{ const el=e.target.closest("[data-act]"); 
 document.addEventListener("change",e=>{
   if(e.target.id==="importIn"){ importFile(e.target); return; }
   const el=e.target; const k=el.dataset.chg; if(!k) return;
-  if(k==="set"){ const it=getItems(el.dataset.target)[+el.dataset.i]; it.sets[+el.dataset.k][el.dataset.f]=Math.max(0,+el.value||0); saveTarget(el.dataset.target); if(el.dataset.target==="log") render(); }
+  if(k==="set"){ const tg=el.dataset.target, i=+el.dataset.i, kk=+el.dataset.k, f=el.dataset.f; const it=getItems(tg)[i]; const old=it.sets[kk][f], v=Math.max(0,+el.value||0); it.sets[kk][f]=v;
+    // 아직 안 끝낸 뒤 세트가 고치기 전 값과 같았다면 새 값을 따라간다 (1세트 무게를 올리면 2·3세트도)
+    for(let j=kk+1;j<it.sets.length;j++){ const s2=it.sets[j]; if(s2.done||+s2[f]!==+old) break; s2[f]=v; const inp=document.querySelector(`input[data-chg="set"][data-target="${tg}"][data-i="${i}"][data-k="${j}"][data-f="${f}"]`); if(inp) inp.value=v; }
+    saveTarget(tg);
+    // 화면 전체를 다시 그리면 방금 누른 다음 칸의 포커스(키보드)가 사라진다 → 바뀌는 부분만 갱신
+    if(tg==="log") refreshCard(i); }
   if(k==="rir"){ const s=day().workout.items[+el.dataset.i].sets[+el.dataset.k]; s.rir=el.value; markDirty(dayKey(ui.date)); }
   if(k==="rest"){ getItems(el.dataset.target)[+el.dataset.i].rest=+el.value; saveTarget(el.dataset.target); }
   if(k==="dayTitle"){ S.main.plan[+el.dataset.i].title=el.value.trim()||"운동"; markDirty("main"); }

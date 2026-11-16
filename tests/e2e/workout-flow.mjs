@@ -1,0 +1,53 @@
+// 운동 중 흐름 검사 (IMPROVEMENTS.md 1~4번).  npm run build && node tests/e2e/workout-flow.mjs
+import { chromium } from "playwright"; import { preview } from "vite";
+const server = await preview({ logLevel: "error", preview: { port: 0 } });
+const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true }); const p = await ctx.newPage();
+const errs = []; p.on("pageerror", e => errs.push(e.message));
+let failed = 0; const check = (n, ok, x = "") => { console.log((ok ? "  ✓ " : "  ✗ ") + n + (ok ? "" : "  " + x)); if (!ok) failed++; };
+await p.goto(server.resolvedUrls.local[0]); await p.waitForSelector("#view > *");
+const seed = () => p.evaluate(() => { const g = window.gymlog; const d = g.day(); d.workout.items = [g.mkItem(g.EXMAP.bench, 3, 8, 60), g.mkItem(g.EXMAP.squat, 3, 6, 80), g.mkItem(g.EXMAP.lat_pd, 3, 10, 50)]; g.markDirty("d-" + g.ui.date); });
+await seed(); await p.click("[data-tab=workout]");
+// 1) 세트 값: 포커스 유지 + 뒤 세트로 이어짐
+await p.click('input[data-f="w"][data-i="0"][data-k="0"]'); await p.keyboard.press("Control+A"); await p.keyboard.type("62.5"); await p.click('input[data-f="r"][data-i="0"][data-k="0"]'); await p.waitForTimeout(150);
+check("무게를 고치고 횟수 칸을 누르면 포커스가 그 칸에 남는다", await p.evaluate(() => { const a = document.activeElement; return a?.dataset?.f === "r" && a.dataset.k === "0"; }));
+check("고친 무게가 안 끝낸 뒤 세트에 이어진다 (62.5 ×3)", JSON.stringify(await p.evaluate(() => window.gymlog.day().workout.items[0].sets.map(s => s.w))) === "[62.5,62.5,62.5]");
+check("화면의 2·3세트 칸도 62.5로 보인다", await p.evaluate(() => [1, 2].every(k => document.querySelector(`input[data-f="w"][data-i="0"][data-k="${k}"]`).value === "62.5")));
+check("원판 계산이 62.5kg 기준으로 바뀐다", (await p.textContent("#plates-0")).includes("62.5kg"));
+await p.click('[data-act=toggleSet][data-i="0"][data-k="0"]'); await p.waitForTimeout(200);
+await p.click('input[data-f="w"][data-i="0"][data-k="1"]'); await p.keyboard.press("Control+A"); await p.keyboard.type("65"); await p.keyboard.press("Tab"); await p.waitForTimeout(150);
+check("끝낸 세트는 그대로, 뒤 세트만 따라간다 (62.5, 65, 65)", JSON.stringify(await p.evaluate(() => window.gymlog.day().workout.items[0].sets.map(s => s.w))) === "[62.5,65,65]");
+// 2) 타이머·탭 복원, 화면 꺼짐 방지 요청
+check("세트 체크 후 타이머가 뜬다", await p.evaluate(() => document.getElementById("timer").classList.contains("on")));
+const before = await p.evaluate(() => document.getElementById("timerT").textContent);
+await p.evaluate(() => window.gymlog.flush()); await p.waitForTimeout(1200); await p.reload(); await p.waitForSelector("#view > *"); await p.waitForTimeout(400);
+const after = await p.evaluate(() => [document.getElementById("timer").classList.contains("on"), document.getElementById("timerT").textContent, window.gymlog.ui.tab]);
+check(`새로고침 뒤에도 타이머가 이어진다 (${before} → ${after[1]})`, after[0] && after[1] !== "GO!" && after[1] <= before);
+check("새로고침 뒤 운동 탭으로 돌아온다", after[2] === "workout");
+await p.click("[data-act=timerStop]"); await p.reload(); await p.waitForSelector("#view > *"); await p.waitForTimeout(300);
+check("끈 타이머는 다시 살아나지 않는다", await p.evaluate(() => !document.getElementById("timer").classList.contains("on")));
+// 3) 버튼 크기·삭제 되돌리기·아래로
+const sizes = await p.evaluate(() => [...document.querySelectorAll(".ex-head button, .adjust button")].map(e => { const r = e.getBoundingClientRect(); return [e.textContent.trim(), Math.round(r.width), Math.round(r.height)]; }));
+const small = sizes.filter(([, w, h]) => w < 44 || h < 44);
+check("운동 카드의 버튼이 모두 44px 이상", small.length === 0, JSON.stringify(small.slice(0, 5)));
+check("가로 넘침 없음", await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1));
+await p.click('[data-act=delEx][data-i="0"]'); await p.waitForTimeout(200);
+check("완료 세트가 있는 운동은 한 번에 지워지지 않는다", await p.evaluate(() => window.gymlog.day().workout.items.length === 3));
+await p.click('[data-act=delEx][data-i="0"]'); await p.waitForTimeout(200);
+check("두 번째에 지워지고 되돌리기 버튼이 뜬다", await p.evaluate(() => window.gymlog.day().workout.items.length === 2) && await p.locator("#toast [data-act=undoDel]").count() === 1);
+await p.click("#toast [data-act=undoDel]"); await p.waitForTimeout(200);
+check("되돌리면 완료 세트까지 원래 자리로 돌아온다", await p.evaluate(() => { const it = window.gymlog.day().workout.items; return it.length === 3 && it[0].exId === "bench" && it[0].sets[0].done === true; }));
+await p.click('[data-act=delEx][data-i="2"]'); await p.waitForTimeout(150);
+check("완료 세트가 없는 운동은 한 번에 지워지고 되돌릴 수 있다", await p.evaluate(() => window.gymlog.day().workout.items.length === 2) && await p.locator("#toast [data-act=undoDel]").count() === 1);
+await p.click("#toast [data-act=undoDel]"); await p.waitForTimeout(150);
+await p.click('[data-act=moveEx][data-i="0"][data-d="1"]'); await p.waitForTimeout(150);
+check("아래로 옮기기", await p.evaluate(() => window.gymlog.day().workout.items.map(x => x.exId).join() === "squat,bench,lat_pd"));
+// 4) 다른 요일 루틴
+await p.evaluate(() => { const g = window.gymlog; g.day().workout.items = []; g.markDirty("d-" + g.ui.date); g.render(); });
+await p.click("[data-act=pickPlan]"); await p.waitForTimeout(200);
+const n = await p.locator("#sheet [data-act=loadPlan]").count();
+check("루틴 목록에 플랜의 운동하는 요일이 모두 보인다", n === await p.evaluate(() => window.gymlog.S.main.plan.filter(d => d.items.length).length) && n >= 2, "개수 " + n);
+const pick = await p.evaluate(() => { const g = window.gymlog; const w = g.wIdx(g.ui.date); return g.S.main.plan.findIndex((d, i) => i !== w && d.items.length); });
+await p.click(`#sheet [data-act=loadPlan][data-i="${pick}"]`); await p.waitForTimeout(250);
+check("다른 요일의 루틴이 오늘 운동으로 들어온다", await p.evaluate((i) => { const g = window.gymlog; return g.day().workout.items.length === g.S.main.plan[i].items.length && g.day().workout.items[0].name === g.S.main.plan[i].items[0].name && !document.getElementById("sheet").classList.contains("open"); }, pick));
+check("페이지 오류 없음", errs.length === 0, errs.join(" | "));
+await b.close(); await server.close(); console.log(failed ? `\n실패 ${failed}건` : "\n모두 통과"); process.exit(failed ? 1 : 0);
