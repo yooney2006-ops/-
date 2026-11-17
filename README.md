@@ -73,6 +73,8 @@ tests/                  unit(vitest) · physics · render · e2e
   import { handleAI } from "../../server/ai";
   export const onRequestPost = ({ request, env }) => handleAI(request, env);
   ```
+- **Vercel**: 저장소에 `api/ai.ts`(함수)와 `vercel.json`이 들어 있다. vercel.com에서 이 저장소를 가져온 뒤 프로젝트 환경 변수에 `ANTHROPIC_API_KEY`와 `GYMLOG_TOKEN`(직접 정한 암호)을 넣고 배포하면 앱과 `/api/ai`가 같은 주소로 올라간다. 앱의 '내 정보·목표 → AI 접속 암호'에 같은 암호를 넣으면 Claude 기능이 켜진다. (이 구성은 실제 Vercel에서 아직 돌려 보지 못했다.)
+- GitHub Pages(`https://yooney2006-ops.github.io/-/`)는 정적 파일만 올리므로 Claude 기능이 동작하지 않는다.
 - 함수 주소가 앱과 다른 곳이면 빌드할 때 `VITE_AI_ENDPOINT`로 지정한다.
 - `GYMLOG_TOKEN`을 설정하면 앱의 '내 정보·목표'에서 같은 암호를 입력해야 호출된다. 공개 주소에 올릴 때는 꼭 설정할 것.
 - 함수가 없어도 앱의 나머지(기록, 플랜, 가이드, 3D)는 전부 동작하고, Claude 버튼만 안내 문구를 보여 준다.

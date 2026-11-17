@@ -51,3 +51,20 @@ describe("CSV 내보내기", () => {
     expect(toCSV(rows).split("\r\n")[2]).toBe('2026-11-16,"벤치, 바벨",가슴,1,본 세트,60,8,1,Y');
   });
 });
+
+describe("Claude 프록시 (Vercel 함수 진입점)", () => {
+  const post = (body: unknown, headers: Record<string, string> = {}) => new Request("https://x/api/ai", { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
+  it("키가 없으면 '설정 안 됨'으로 답한다 (앱은 안내 문구를 보여 준다)", async () => {
+    const { default: handler } = await import("../../api/ai");
+    const old = process.env.ANTHROPIC_API_KEY; delete process.env.ANTHROPIC_API_KEY;
+    const r = await handler(post({ mode: "text", prompt: "hi" })); if (old) process.env.ANTHROPIC_API_KEY = old;
+    expect(r.status).toBe(503); expect((await r.json()).code).toBe("not_configured");
+  });
+  it("접속 암호가 설정돼 있으면 암호 없이는 거절하고, 형식이 틀린 요청·GET도 거절한다", async () => {
+    const { handleAI } = await import("../../server/ai");
+    const env = { ANTHROPIC_API_KEY: "test-key-not-real", GYMLOG_TOKEN: "pw" };
+    expect((await handleAI(post({ mode: "text", prompt: "hi" }), env)).status).toBe(401);
+    expect((await handleAI(post({ mode: "nope" }, { "x-gymlog-token": "pw" }), env)).status).toBe(400);
+    expect((await handleAI(new Request("https://x/api/ai"), env)).status).toBe(405);
+  });
+});
