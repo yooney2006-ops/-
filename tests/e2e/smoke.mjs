@@ -20,13 +20,14 @@ await page.goto(url);
 await page.waitForSelector("#view > *");
 check("저장 상태 표시가 '이 기기'", (await page.textContent("#saveStatus")).includes("이 기기"));
 
-for (const [tab, min] of [["food", 200], ["workout", 200], ["plan", 500], ["guide", 2000]]) {
+for (const [tab, min] of [["food", 200], ["workout", 200], ["plan", 500], ["guide", 2000], ["stats", 500]]) {
   await page.click(`[data-tab=${tab}]`);
   const len = await page.evaluate(() => document.getElementById("view").innerHTML.length);
   check(`${tab} 탭이 그려짐`, len > min, `길이 ${len}`);
 }
 
 // 운동 가이드: 222개, 3D 영상
+await page.click("[data-tab=guide]");
 check("가이드에 운동 222개", (await page.textContent("#guideCount")).includes("222"));
 await page.click("[data-act=exDetail][data-id=bench]");
 await page.waitForTimeout(800);
@@ -34,12 +35,18 @@ await page.waitForTimeout(800);
 const shot = await page.locator("#sheet canvas").first().screenshot({ path: process.env.SHOT || undefined });
 const painted = shot.length;
 check("벤치프레스 3D 영상이 그려짐", painted > 6000, `캡처 ${painted}바이트`);
+// 가이드 토글과 속도
+await page.click("[data-g=lines]"); await page.click("#figSpeedBtn");
+check("가이드 토글·0.5x 전환", await page.evaluate(() => window.gymlog.ui.fig.guide().lines === true && document.getElementById("figSpeedBtn").textContent === "0.5x"));
+check("궤적 오버레이가 그려짐", await page.evaluate(() => { const c = document.querySelector("#sheet canvas.fig-ov"); if (!c) return false; const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data; for (let i = 3; i < d.length; i += 4) if (d[i]) return true; return false; }));
 await page.click("#sheet [data-act=closeSheet]");
 
 // 기록 → 새로고침 뒤 유지
 await page.click("[data-tab=workout]");
 await page.evaluate(() => { const g = window.gymlog; const d = g.day(); d.workout.items = [g.mkItem(g.EXMAP.bench, 3, 8, 60)]; g.markDirty("d-" + g.ui.date); g.render(); });
 await page.click('[data-act=toggleSet][data-i="0"][data-k="0"]');
+check("세트 완료 시 휴식 타이머가 자동으로 뜸", await page.evaluate(() => document.getElementById("timer").classList.contains("on")));
+await page.click("[data-act=timerStop]");
 await page.evaluate(() => window.gymlog.flush());
 await page.reload();
 await page.waitForSelector("#view > *");
@@ -61,7 +68,20 @@ await page.waitForSelector("#view > *");
 check("가져온 기록이 저장돼 있음", await page.evaluate(() => { const g = window.gymlog; return g.S.days[g.ui.date]?.workout.items[0]?.exId === "bench"; }));
 
 // Claude 미설정: 조용히 죽지 않고 안내가 나와야 한다
+// 화면 폭별 가로 넘침 없음
+for (const w of [360, 420, 1280]) { await page.setViewportSize({ width: w, height: 900 });
+  for (const tab of ["workout", "stats", "plan"]) { await page.click(`[data-tab=${tab}]`); await page.waitForTimeout(150);
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth); check(`${w}px ${tab}: 가로 넘침 없음`, over <= 1, `${over}px`); } }
+await page.setViewportSize({ width: 420, height: 900 });
+// 검색: 초성·오타·영문, 근거 시트
 await page.click("[data-tab=guide]");
+for (const [q, want] of [["ㅂㅊㅍㄹㅅ", "바벨 벤치프레스"], ["밴치프레스", "바벨 벤치프레스"], ["squat", "바벨 백스쿼트"], ["턱걸이", "풀업(턱걸이)"]]) {
+  await page.fill("#guideQ", q); await page.waitForTimeout(120);
+  check(`가이드 검색 "${q}" → ${want}`, (await page.textContent("#guideList")).includes(want)); }
+await page.fill("#guideQ", "");
+await page.evaluate(() => window.gymlog.A.why({ dataset: { rule: "vol_week,protein_cut" } }));
+check("근거 시트에 규칙·논문·DOI가 보임", await page.evaluate(() => { const t = document.getElementById("sheet").innerHTML; return /10–20세트/.test(t) && /doi\.org/.test(t) && /검증|근거 연결됨/.test(t); }));
+await page.evaluate(() => window.gymlog.A.closeSheet());
 await page.fill("#gAsk", "스쿼트 무릎");
 await page.press("#gAsk", "Enter");
 await page.waitForTimeout(800);

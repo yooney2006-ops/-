@@ -1,0 +1,1064 @@
+{
+ "pelland25": {
+  "pmid": "41343037",
+  "doi": "10.1007/s40279-025-02344-w",
+  "title": "The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gains.",
+  "journal": "Sports Med",
+  "year": 2026,
+  "authors": [
+   "Pelland",
+   "Remmert",
+   "Robinson",
+   "Hinson",
+   "Zourdos"
+  ],
+  "n_authors": 5,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "schoen17vol": {
+  "pmid": "27433992",
+  "doi": "10.1080/02640414.2016.1210197",
+  "title": "Dose-response relationship between weekly resistance training volume and increases in muscle mass: A systematic review and meta-analysis.",
+  "journal": "J Sports Sci",
+  "year": 2017,
+  "authors": [
+   "Schoenfeld",
+   "Ogborn",
+   "Krieger"
+  ],
+  "n_authors": 3,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "schoen16freq": {
+  "pmid": "27102172",
+  "doi": "10.1007/s40279-016-0543-8",
+  "title": "Effects of Resistance Training Frequency on Measures of Muscle Hypertrophy: A Systematic Review and Meta-Analysis.",
+  "journal": "Sports Med",
+  "year": 2016,
+  "authors": [
+   "Schoenfeld",
+   "Ogborn",
+   "Krieger"
+  ],
+  "n_authors": 3,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "schoen19freq": {
+  "pmid": "30558493",
+  "doi": "10.1080/02640414.2018.1555906",
+  "title": "How many times per week should a muscle be trained to maximize muscle hypertrophy? A systematic review and meta-analysis of studies examining the effects of resistance training frequency.",
+  "journal": "J Sports Sci",
+  "year": 2019,
+  "authors": [
+   "Schoenfeld",
+   "Grgic",
+   "Krieger"
+  ],
+  "n_authors": 3,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "ralston17": {
+  "pmid": "28755103",
+  "doi": "10.1007/s40279-017-0762-7",
+  "title": "The Effect of Weekly Set Volume on Strength Gain: A Meta-Analysis.",
+  "journal": "Sports Med",
+  "year": 2017,
+  "authors": [
+   "Ralston",
+   "Kilgore",
+   "Wyatt",
+   "Baker"
+  ],
+  "n_authors": 4,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "grgic18freq": {
+  "pmid": "29470825",
+  "doi": "10.1007/s40279-018-0872-x",
+  "title": "Effect of Resistance Training Frequency on Gains in Muscular Strength: A Systematic Review and Meta-Analysis.",
+  "journal": "Sports Med",
+  "year": 2018,
+  "authors": [
+   "Grgic",
+   "Schoenfeld",
+   "Davies",
+   "Lazinica",
+   "Krieger",
+   "Pedisic"
+  ],
+  "n_authors": 6,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "schoen17load": {
+  "pmid": "28834797",
+  "doi": "10.1519/JSC.0000000000002200",
+  "title": "Strength and Hypertrophy Adaptations Between Low- vs. High-Load Resistance Training: A Systematic Review and Meta-analysis.",
+  "journal": "J Strength Cond Res",
+  "year": 2017,
+  "authors": [
+   "Schoenfeld",
+   "Grgic",
+   "Ogborn",
+   "Krieger"
+  ],
+  "n_authors": 4,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "lopez21": {
+  "pmid": "35029596",
+  "doi": "10.1249/MSS.0000000000002838",
+  "title": "Resistance Training Load Effects on Muscle Hypertrophy and Strength Gain: Systematic Review and Network Meta-analysis-Corrigendum.",
+  "journal": "Med Sci Sports Exerc",
+  "year": 2022,
+  "authors": [],
+  "n_authors": 0,
+  "pub_types": [
+   "Journal Article",
+   "Published Erratum"
+  ],
+  "has_abstract": false,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST",
+  "authors_from": "Crossref"
+ },
+ "robinson24": {
+  "pmid": "38970765",
+  "doi": "10.1007/s40279-024-02069-2",
+  "title": "Exploring the Dose-Response Relationship Between Estimated Resistance Training Proximity to Failure, Strength Gain, and Muscle Hypertrophy: A Series of Meta-Regressions.",
+  "journal": "Sports Med",
+  "year": 2024,
+  "authors": [
+   "Robinson",
+   "Pelland",
+   "Remmert",
+   "Refalo",
+   "Jukic",
+   "Steele"
+  ],
+  "n_authors": 7,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": false,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "refalo23": {
+  "pmid": "36334240",
+  "doi": "10.1007/s40279-022-01784-y",
+  "title": "Influence of Resistance Training Proximity-to-Failure on Skeletal Muscle Hypertrophy: A Systematic Review with Meta-analysis.",
+  "journal": "Sports Med",
+  "year": 2023,
+  "authors": [
+   "Refalo",
+   "Helms",
+   "Trexler",
+   "Hamilton",
+   "Fyfe"
+  ],
+  "n_authors": 5,
+  "pub_types": [
+   "Meta-Analysis",
+   "Systematic Review",
+   "Journal Article"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "grgic22fail": {
+  "pmid": "33497853",
+  "doi": "10.1016/j.jshs.2021.01.007",
+  "title": "Effects of resistance training performed to repetition failure or non-failure on muscular strength and hypertrophy: A systematic review and meta-analysis.",
+  "journal": "J Sport Health Sci",
+  "year": 2022,
+  "authors": [
+   "Grgic",
+   "Schoenfeld",
+   "Orazem",
+   "Sabol"
+  ],
+  "n_authors": 4,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "singer24": {
+  "pmid": "39205815",
+  "doi": "10.3389/fspor.2024.1429789",
+  "title": "Give it a rest: a systematic review with Bayesian meta-analysis on the effect of inter-set rest interval duration on muscle hypertrophy.",
+  "journal": "Front Sports Act Living",
+  "year": 2024,
+  "authors": [
+   "Singer",
+   "Wolf",
+   "Generoso",
+   "Arias",
+   "Delcastillo",
+   "Echevarria"
+  ],
+  "n_authors": 11,
+  "pub_types": [
+   "Journal Article",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "grgic18rest": {
+  "pmid": "28933024",
+  "doi": "10.1007/s40279-017-0788-x",
+  "title": "Effects of Rest Interval Duration in Resistance Training on Measures of Muscular Strength: A Systematic Review.",
+  "journal": "Sports Med",
+  "year": 2018,
+  "authors": [
+   "Grgic",
+   "Schoenfeld",
+   "Skrepnik",
+   "Davies",
+   "Mikulic"
+  ],
+  "n_authors": 5,
+  "pub_types": [
+   "Journal Article",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "acsm09": {
+  "pmid": "19204579",
+  "doi": "10.1249/MSS.0b013e3181915670",
+  "title": "American College of Sports Medicine position stand. Progression models in resistance training for healthy adults.",
+  "journal": "Med Sci Sports Exerc",
+  "year": 2009,
+  "authors": [
+   "American College of Sports Medicine"
+  ],
+  "n_authors": 1,
+  "pub_types": [
+   "Journal Article",
+   "Practice Guideline",
+   "Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": false,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "currier23": {
+  "pmid": "37414459",
+  "doi": "10.1136/bjsports-2023-106807",
+  "title": "Resistance training prescription for muscle strength and hypertrophy in healthy adults: a systematic review and Bayesian network meta-analysis.",
+  "journal": "Br J Sports Med",
+  "year": 2023,
+  "authors": [
+   "Currier",
+   "Mcleod",
+   "Banfield",
+   "Beyene",
+   "Welton",
+   "D'Souza"
+  ],
+  "n_authors": 14,
+  "pub_types": [
+   "Systematic Review",
+   "Journal Article",
+   "Network Meta-Analysis"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "morton18": {
+  "pmid": "28698222",
+  "doi": "10.1136/bjsports-2017-097608",
+  "title": "A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength in healthy adults.",
+  "journal": "Br J Sports Med",
+  "year": 2018,
+  "authors": [
+   "Morton",
+   "Murphy",
+   "McKellar",
+   "Schoenfeld",
+   "Henselmans",
+   "Helms"
+  ],
+  "n_authors": 11,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "issn17prot": {
+  "pmid": "28642676",
+  "doi": "10.1186/s12970-017-0177-8",
+  "title": "International Society of Sports Nutrition Position Stand: protein and exercise.",
+  "journal": "J Int Soc Sports Nutr",
+  "year": 2017,
+  "authors": [
+   "Jäger",
+   "Kerksick",
+   "Campbell",
+   "Cribb",
+   "Wells",
+   "Skwiat"
+  ],
+  "n_authors": 22,
+  "pub_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "helms14": {
+  "pmid": "24092765",
+  "doi": "10.1123/ijsnem.2013-0054",
+  "title": "A systematic review of dietary protein during caloric restriction in resistance trained lean athletes: a case for higher intakes.",
+  "journal": "Int J Sport Nutr Exerc Metab",
+  "year": 2014,
+  "authors": [
+   "Helms",
+   "Zinn",
+   "Rowlands",
+   "Brown"
+  ],
+  "n_authors": 4,
+  "pub_types": [
+   "Journal Article",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "nunes22": {
+  "pmid": "35187864",
+  "doi": "10.1002/jcsm.12922",
+  "title": "Systematic review and meta-analysis of protein intake to support muscle mass and function in healthy adults.",
+  "journal": "J Cachexia Sarcopenia Muscle",
+  "year": 2022,
+  "authors": [
+   "Nunes",
+   "Colenso-Semple",
+   "McKellar",
+   "Yau",
+   "Ali",
+   "Fitzpatrick-Lewis"
+  ],
+  "n_authors": 15,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": false,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "tagawa21": {
+  "pmid": "33300582",
+  "doi": "10.1093/nutrit/nuaa104",
+  "title": "Dose-response relationship between protein intake and muscle mass increase: a systematic review and meta-analysis of randomized controlled trials.",
+  "journal": "Nutr Rev",
+  "year": 2020,
+  "authors": [
+   "Tagawa",
+   "Watanabe",
+   "Ito",
+   "Ueda",
+   "Nakayama",
+   "Sanbongi"
+  ],
+  "n_authors": 7,
+  "pub_types": [
+   "Journal Article"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": false,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "acsm26": {
+  "pmid": "41843416",
+  "doi": "10.1249/MSS.0000000000003897",
+  "title": "American College of Sports Medicine Position Stand. Resistance Training Prescription for Muscle Function, Hypertrophy, and Physical Performance in Healthy Adults: An Overview of Reviews.",
+  "journal": "Med Sci Sports Exerc",
+  "year": 2026,
+  "authors": [
+   "Currier",
+   "D'Souza",
+   "Singh",
+   "Lowisz",
+   "Rawson",
+   "Schoenfeld"
+  ],
+  "n_authors": 13,
+  "pub_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "compendium24": {
+  "pmid": "38242596",
+  "doi": "10.1016/j.jshs.2023.10.010",
+  "title": "2024 Adult Compendium of Physical Activities: A third update of the energy costs of human activities.",
+  "journal": "J Sport Health Sci",
+  "year": 2024,
+  "authors": [
+   "Herrmann",
+   "Willis",
+   "Ainsworth",
+   "Barreira",
+   "Hastert",
+   "Kracht"
+  ],
+  "n_authors": 12,
+  "pub_types": [
+   "Systematic Review",
+   "Journal Article"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "reynolds06": {
+  "pmid": "16937972",
+  "doi": "10.1519/R-15304.1",
+  "title": "Prediction of one repetition maximum strength from multiple repetition maximum testing and anthropometry.",
+  "journal": "J Strength Cond Res",
+  "year": 2006,
+  "authors": [
+   "Reynolds",
+   "Gordon",
+   "Robergs"
+  ],
+  "n_authors": 3,
+  "pub_types": [
+   "Journal Article"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "bell23": {
+  "pmid": "37730925",
+  "doi": "10.1186/s40798-023-00633-0",
+  "title": "Integrating Deloading into Strength and Physique Sports Training Programmes: An International Delphi Consensus Approach.",
+  "journal": "Sports Med Open",
+  "year": 2023,
+  "authors": [
+   "Bell",
+   "Strafford",
+   "Coleman",
+   "Androulakis Korakakis",
+   "Nolan"
+  ],
+  "n_authors": 5,
+  "pub_types": [
+   "Journal Article"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "coleman24": {
+  "pmid": "38274324",
+  "doi": "10.7717/peerj.16777",
+  "title": "Gaining more from doing less? The effects of a one-week deload period during supervised resistance training on muscular adaptations.",
+  "journal": "PeerJ",
+  "year": 2024,
+  "authors": [
+   "Coleman",
+   "Burke",
+   "Augustin",
+   "Piñero",
+   "Maldonado",
+   "Fisher"
+  ],
+  "n_authors": 11,
+  "pub_types": [
+   "Randomized Controlled Trial",
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "deload26": {
+  "pmid": "41730991",
+  "doi": "10.1038/s41598-026-40612-5",
+  "title": "Effects of deload periods in resistance training on muscle hypertrophy and strength endurance in untrained young men using a randomized within subject design.",
+  "journal": "Sci Rep",
+  "year": 2026,
+  "authors": [
+   "Pancar",
+   "Ilhan",
+   "Darendeli",
+   "Karaca",
+   "Ikidag",
+   "Tasdogan"
+  ],
+  "n_authors": 10,
+  "pub_types": [
+   "Journal Article",
+   "Randomized Controlled Trial"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "moran17": {
+  "pmid": "28965198",
+  "doi": "10.1007/s00421-017-3725-7",
+  "title": "Time course of recovery following resistance training leading or not to failure.",
+  "journal": "Eur J Appl Physiol",
+  "year": 2017,
+  "authors": [
+   "Morán-Navarro",
+   "Pérez",
+   "Mora-Rodríguez",
+   "de la Cruz-Sánchez",
+   "González-Badillo",
+   "Sánchez-Medina"
+  ],
+  "n_authors": 7,
+  "pub_types": [
+   "Journal Article"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "maeo23": {
+  "pmid": "35819335",
+  "doi": "10.1080/17461391.2022.2100279",
+  "title": "Triceps brachii hypertrophy is substantially greater after elbow extension training performed in the overhead versus neutral arm position.",
+  "journal": "Eur J Sport Sci",
+  "year": 2023,
+  "authors": [
+   "Maeo",
+   "Wu",
+   "Huang",
+   "Sakurai",
+   "Kusagawa",
+   "Sugiyama"
+  ],
+  "n_authors": 8,
+  "pub_types": [
+   "Journal Article"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "haugen23": {
+  "pmid": "37582807",
+  "doi": "10.1186/s13102-023-00713-4",
+  "title": "Effect of free-weight vs. machine-based strength training on maximal strength, hypertrophy and jump performance - a systematic review and meta-analysis.",
+  "journal": "BMC Sports Sci Med Rehabil",
+  "year": 2023,
+  "authors": [
+   "Haugen",
+   "Vårvik",
+   "Larsen",
+   "Haugen",
+   "van den Tillaar",
+   "Bjørnsen"
+  ],
+  "n_authors": 6,
+  "pub_types": [
+   "Journal Article"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "mifflin90": {
+  "pmid": "2305711",
+  "doi": "10.1093/ajcn/51.2.241",
+  "title": "A new predictive equation for resting energy expenditure in healthy individuals.",
+  "journal": "Am J Clin Nutr",
+  "year": 1990,
+  "authors": [
+   "Mifflin",
+   "St Jeor",
+   "Hill",
+   "Scott",
+   "Daugherty",
+   "Koh"
+  ],
+  "n_authors": 6,
+  "pub_types": [
+   "Journal Article",
+   "Research Support, U.S. Gov't, P.H.S."
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "schoen21rep": {
+  "pmid": "33671664",
+  "doi": "10.3390/sports9020032",
+  "title": "Loading Recommendations for Muscle Strength, Hypertrophy, and Local Endurance: A Re-Examination of the Repetition Continuum.",
+  "journal": "Sports (Basel)",
+  "year": 2021,
+  "authors": [
+   "Schoenfeld",
+   "Grgic",
+   "Van Every",
+   "Plotkin"
+  ],
+  "n_authors": 4,
+  "pub_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "fragala19": {
+  "pmid": "31343601",
+  "doi": "10.1519/JSC.0000000000003230",
+  "title": "Resistance Training for Older Adults: Position Statement From the National Strength and Conditioning Association.",
+  "journal": "J Strength Cond Res",
+  "year": 2019,
+  "authors": [
+   "Fragala",
+   "Cadore",
+   "Dorgo",
+   "Izquierdo",
+   "Kraemer",
+   "Peterson"
+  ],
+  "n_authors": 7,
+  "pub_types": [
+   "Journal Article",
+   "Review",
+   "Consensus Statement"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "garber11": {
+  "pmid": "21694556",
+  "doi": "10.1249/MSS.0b013e318213fefb",
+  "title": "American College of Sports Medicine position stand. Quantity and quality of exercise for developing and maintaining cardiorespiratory, musculoskeletal, and neuromotor fitness in apparently healthy adults: guidance for prescribing exercise.",
+  "journal": "Med Sci Sports Exerc",
+  "year": 2011,
+  "authors": [
+   "Garber",
+   "Blissmer",
+   "Deschenes",
+   "Franklin",
+   "Lamonte",
+   "Lee"
+  ],
+  "n_authors": 9,
+  "pub_types": [
+   "Journal Article",
+   "Practice Guideline"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": false,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "bazvalle22": {
+  "pmid": "35291645",
+  "doi": "10.2478/hukin-2022-0017",
+  "title": "A Systematic Review of The Effects of Different Resistance Training Volumes on Muscle Hypertrophy.",
+  "journal": "J Hum Kinet",
+  "year": 2022,
+  "authors": [
+   "Baz-Valle",
+   "Balsalobre-Fernández",
+   "Alix-Fages",
+   "Santos-Concejero"
+  ],
+  "n_authors": 4,
+  "pub_types": [
+   "Journal Article"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "garthe11": {
+  "pmid": "21558571",
+  "doi": "10.1123/ijsnem.21.2.97",
+  "title": "Effect of two different weight-loss rates on body composition and strength and power-related performance in elite athletes.",
+  "journal": "Int J Sport Nutr Exerc Metab",
+  "year": 2011,
+  "authors": [
+   "Garthe",
+   "Raastad",
+   "Refsnes",
+   "Koivisto",
+   "Sundgot-Borgen"
+  ],
+  "n_authors": 5,
+  "pub_types": [
+   "Journal Article",
+   "Randomized Controlled Trial",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "maeo21": {
+  "pmid": "33009197",
+  "doi": "10.1249/MSS.0000000000002523",
+  "title": "Greater Hamstrings Muscle Hypertrophy but Similar Damage Protection after Training at Long versus Short Muscle Lengths.",
+  "journal": "Med Sci Sports Exerc",
+  "year": 2021,
+  "authors": [
+   "Maeo",
+   "Huang",
+   "Wu",
+   "Sakurai",
+   "Kusagawa",
+   "Sugiyama"
+  ],
+  "n_authors": 8,
+  "pub_types": [
+   "Comparative Study",
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "murphy22": {
+  "pmid": "34623696",
+  "doi": "10.1111/sms.14075",
+  "title": "Energy deficiency impairs resistance training gains in lean mass but not strength: A meta-analysis and meta-regression.",
+  "journal": "Scand J Med Sci Sports",
+  "year": 2022,
+  "authors": [
+   "Murphy",
+   "Koehler"
+  ],
+  "n_authors": 2,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "slater19": {
+  "pmid": "31482093",
+  "doi": "10.3389/fnut.2019.00131",
+  "title": "Is an Energy Surplus Required to Maximize Skeletal Muscle Hypertrophy Associated With Resistance Training.",
+  "journal": "Front Nutr",
+  "year": 2019,
+  "authors": [
+   "Slater",
+   "Dieter",
+   "Marsh",
+   "Helms",
+   "Shaw",
+   "Iraki"
+  ],
+  "n_authors": 6,
+  "pub_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "schoen18meal": {
+  "pmid": "29497353",
+  "doi": "10.1186/s12970-018-0215-1",
+  "title": "How much protein can the body use in a single meal for muscle-building? Implications for daily protein distribution.",
+  "journal": "J Int Soc Sports Nutr",
+  "year": 2018,
+  "authors": [
+   "Schoenfeld",
+   "Aragon"
+  ],
+  "n_authors": 2,
+  "pub_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "pareja19": {
+  "pmid": "30836680",
+  "doi": "10.3390/sports7030059",
+  "title": "Time Course of Recovery Following Resistance Exercise with Different Loading Magnitudes and Velocity Loss in the Set.",
+  "journal": "Sports (Basel)",
+  "year": 2019,
+  "authors": [
+   "Pareja-Blanco",
+   "Villalba-Fernández",
+   "Cornejo-Daza",
+   "Sánchez-Valdepeñas",
+   "González-Badillo"
+  ],
+  "n_authors": 5,
+  "pub_types": [
+   "Journal Article"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "pelland24pre": {
+  "pmid": "",
+  "doi": "10.51224/srxiv.460",
+  "title": "The Resistance Training Dose-Response: Meta-Regressions Exploring the Eﬀects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gain",
+  "journal": "SportRxiv (프리프린트, 동료심사 전)",
+  "year": 2024,
+  "authors": [
+   "Joshua Pelland",
+   "Jacob Remmert",
+   "Zac Robinson",
+   "Seth Hinson",
+   "Michael Zourdos"
+  ],
+  "n_authors": 5,
+  "pub_types": [
+   "posted-content"
+  ],
+  "has_abstract": false,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "Crossref REST"
+ },
+ "plotkin22": {
+  "pmid": "36199287",
+  "doi": "10.7717/peerj.14142",
+  "title": "Progressive overload without progressing load? The effects of load or repetition progression on muscular adaptations.",
+  "journal": "PeerJ",
+  "year": 2022,
+  "authors": [
+   "Plotkin",
+   "Coleman",
+   "Van Every",
+   "Maldonado",
+   "Oberlin",
+   "Israetel"
+  ],
+  "n_authors": 10,
+  "pub_types": [
+   "Randomized Controlled Trial",
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "helms23": {
+  "pmid": "37914977",
+  "doi": "10.1186/s40798-023-00651-y",
+  "title": "Effect of Small and Large Energy Surpluses on Strength, Muscle, and Skinfold Thickness in Resistance-Trained Individuals: A Parallel Groups Design.",
+  "journal": "Sports Med Open",
+  "year": 2023,
+  "authors": [
+   "Helms",
+   "Spence",
+   "Sousa",
+   "Kreiger",
+   "Taylor",
+   "Oranchuk"
+  ],
+  "n_authors": 8,
+  "pub_types": [
+   "Journal Article"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "pallares21": {
+  "pmid": "34170576",
+  "doi": "10.1111/sms.14006",
+  "title": "Effects of range of motion on resistance training adaptations: A systematic review and meta-analysis.",
+  "journal": "Scand J Med Sci Sports",
+  "year": 2021,
+  "authors": [
+   "Pallarés",
+   "Hernández-Belmonte",
+   "Martínez-Cava",
+   "Vetrovsky",
+   "Steffl",
+   "Courel-Ibáñez"
+  ],
+  "n_authors": 6,
+  "pub_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "rhea03": {
+  "pmid": "12618576",
+  "doi": "10.1249/01.MSS.0000053727.63505.D4",
+  "title": "A meta-analysis to determine the dose response for strength development.",
+  "journal": "Med Sci Sports Exerc",
+  "year": 2003,
+  "authors": [
+   "Rhea",
+   "Alvar",
+   "Burkett",
+   "Ball"
+  ],
+  "n_authors": 4,
+  "pub_types": [
+   "Comparative Study",
+   "Evaluation Study",
+   "Journal Article",
+   "Meta-Analysis"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ },
+ "krieger10": {
+  "pmid": "20300012",
+  "doi": "10.1519/JSC.0b013e3181d4d436",
+  "title": "Single vs. multiple sets of resistance exercise for muscle hypertrophy: a meta-analysis.",
+  "journal": "J Strength Cond Res",
+  "year": 2010,
+  "authors": [
+   "Krieger"
+  ],
+  "n_authors": 1,
+  "pub_types": [
+   "Comparative Study",
+   "Journal Article",
+   "Meta-Analysis",
+   "Review"
+  ],
+  "has_abstract": true,
+  "crossref_title_match": true,
+  "checked": "2026-11-16",
+  "checked_via": "PubMed E-utilities + Crossref REST"
+ }
+}

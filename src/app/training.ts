@@ -11,7 +11,11 @@ export function exInfo(it){ return EXMAP[it.exId]||null; }
 export function exType(it){ const e=exInfo(it); return it.type||(e?e.type:"w"); }
 export function exPart(it){ const e=exInfo(it); return it.part||(e?e.part:"기타"); }
 export function doneSets(it){ return (it.sets||[]).filter(s=>s.done); }
-export function itemVolume(it){ const t=exType(it); return doneSets(it).reduce((a,s)=>a+(t==="w"?(+s.w||0)*(+s.r||0):0),0); }
+/* 세트 종류: kind 없음 = 본 세트, "w" = 워밍업, "d" = 드롭세트.
+   통계(볼륨·세트 수·회복도·1RM·신기록)에는 워밍업을 뺀 workSets만 쓴다. 드롭세트는 본 세트로 센다. */
+export function workSets(it){ return (it.sets||[]).filter(s=>s.done&&s.kind!=="w"); }
+export const SET_KINDS=[["","본 세트"],["w","워밍업"],["d","드롭세트"]];
+export function itemVolume(it){ const t=exType(it); return workSets(it).reduce((a,s)=>a+(t==="w"?(+s.w||0)*(+s.r||0):0),0); }
 export function e1rm(w,r){ return r>0&&w>0? w*(1+r/30):0; }
 
 // 근육 회복도 (근거: Morán-Navarro 2017, Goulart 2021 — 실패 훈련은 회복 24~48h 지연, 최소 48h)
@@ -29,7 +33,7 @@ export function fatigueAt(atMs,refDate){
   const F={}; MGROUP.forEach(([g])=>F[g]=0);
   for(let i=0;i<6;i++){ const d=addDays(refDate,-i); const v=S.days[d]; if(!v||!v.workout) continue;
     (v.workout.items||[]).forEach(it=>{ const W=groupWeights(it); if(exType(it)==="t") return;
-      doneSets(it).forEach(st=>{ const t=st.t||parseD(d).getTime()+18*3600000; const hrs=(atMs-t)/3600000; if(hrs<0) return; const rir=rirOf(st);
+      workSets(it).forEach(st=>{ const t=st.t||parseD(d).getTime()+18*3600000; const hrs=(atMs-t)/3600000; if(hrs<0) return; const rir=rirOf(st);
         for(const g in W){ const tau=48+(rir<=0?24:rir===1?12:0)+(BIGG.has(g)?12:0); F[g]+=W[g]*recFactor(rir)*Math.max(0,1-hrs/tau); } });
     });
   }
@@ -45,8 +49,8 @@ export function recovery(refDate){
 export function prevRecord(name, before){
   const dates=Object.keys(S.days).filter(d=>d<before).sort().reverse();
   for(const d of dates){
-    const it=(S.days[d].workout?.items||[]).find(x=>x.name===name&&doneSets(x).length);
-    if(it) return {date:d,sets:doneSets(it),type:exType(it)};
+    const it=(S.days[d].workout?.items||[]).find(x=>x.name===name&&workSets(x).length);
+    if(it) return {date:d,sets:workSets(it),all:doneSets(it),type:exType(it)};
   }
   return null;
 }
@@ -69,7 +73,7 @@ export function suggestNext(it, before){
 export function mkItem(e, sets, reps, w){
   return {id:uid(),exId:e?e.id:null,name:e?e.name:"",part:e?e.part:"기타",type:e?e.type:"w",rest:e?e.rest:90,sets:Array.from({length:sets},()=>({w:w??(e?e.def[2]:0),r:reps??(e?e.def[1]:10),done:false}))};
 }
-export function cloneItems(items){ return JSON.parse(JSON.stringify(items||[])).map(it=>({...it,id:uid(),sets:(it.sets||[]).map(s=>({w:s.w,r:s.r,done:false,rir:""}))})); }
+export function cloneItems(items){ return JSON.parse(JSON.stringify(items||[])).map(it=>({...it,id:uid(),sets:(it.sets||[]).map(s=>({w:s.w,r:s.r,done:false,rir:"",...(s.kind?{kind:s.kind}:{})}))})); }
 
 /* 기본 추천 플랜 템플릿 */
 export const SPLITS={

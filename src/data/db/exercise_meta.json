@@ -1,0 +1,474 @@
+{
+ "_meta": {
+  "source": "free-exercise-db (github.com/yuhonas/free-exercise-db)",
+  "license": "Unlicense (퍼블릭 도메인)",
+  "version": "2026.11.16",
+  "status": "검증됨(공개 데이터)",
+  "note": "난이도는 데이터셋의 level 값. 대응하지 못한 운동은 비워 둠"
+ },
+ "exercises": {
+  "ab_crunch_m": {
+   "en": "Ab Crunch Machine",
+   "level": "중급",
+   "source_id": "Ab_Crunch_Machine",
+   "match": "이름 일치"
+  },
+  "arnold": {
+   "en": "Arnold Dumbbell Press",
+   "level": "중급",
+   "source_id": "Arnold_Dumbbell_Press",
+   "match": "직접 지정"
+  },
+  "bb_curl": {
+   "en": "Barbell Curl",
+   "level": "초급",
+   "source_id": "Barbell_Curl",
+   "match": "이름 일치"
+  },
+  "bb_row": {
+   "en": "Bent Over Barbell Row",
+   "level": "초급",
+   "source_id": "Bent_Over_Barbell_Row",
+   "match": "직접 지정"
+  },
+  "bench": {
+   "en": "Barbell Bench Press - Medium Grip",
+   "level": "초급",
+   "source_id": "Barbell_Bench_Press_-_Medium_Grip",
+   "match": "직접 지정"
+  },
+  "bike": {
+   "en": "Bicycling, Stationary",
+   "level": "초급",
+   "source_id": "Bicycling_Stationary",
+   "match": "직접 지정"
+  },
+  "cable_cross": {
+   "en": "Cable Crossover",
+   "level": "초급",
+   "source_id": "Cable_Crossover",
+   "match": "이름 일치"
+  },
+  "cable_crunch": {
+   "en": "Cable Crunch",
+   "level": "초급",
+   "source_id": "Cable_Crunch",
+   "match": "이름 일치"
+  },
+  "calf_raise": {
+   "en": "Standing Calf Raises",
+   "level": "초급",
+   "source_id": "Standing_Calf_Raises",
+   "match": "이름 일치"
+  },
+  "chinup": {
+   "en": "Chin-Up",
+   "level": "초급",
+   "source_id": "Chin-Up",
+   "match": "이름 일치"
+  },
+  "close_bench": {
+   "en": "Close-Grip Barbell Bench Press",
+   "level": "초급",
+   "source_id": "Close-Grip_Barbell_Bench_Press",
+   "match": "직접 지정"
+  },
+  "close_pd": {
+   "en": "Close-Grip Front Lat Pulldown",
+   "level": "초급",
+   "source_id": "Close-Grip_Front_Lat_Pulldown",
+   "match": "직접 지정"
+  },
+  "conc_curl": {
+   "en": "Concentration Curls",
+   "level": "초급",
+   "source_id": "Concentration_Curls",
+   "match": "이름 일치"
+  },
+  "crunch": {
+   "en": "Crunches",
+   "level": "초급",
+   "source_id": "Crunches",
+   "match": "직접 지정"
+  },
+  "curl_m": {
+   "en": "Machine Bicep Curl",
+   "level": "초급",
+   "source_id": "Machine_Bicep_Curl",
+   "match": "이름 일치"
+  },
+  "db_bench": {
+   "en": "Dumbbell Bench Press",
+   "level": "초급",
+   "source_id": "Dumbbell_Bench_Press",
+   "match": "이름 일치"
+  },
+  "db_curl": {
+   "en": "Dumbbell Bicep Curl",
+   "level": "초급",
+   "source_id": "Dumbbell_Bicep_Curl",
+   "match": "직접 지정"
+  },
+  "db_fly": {
+   "en": "Dumbbell Flyes",
+   "level": "초급",
+   "source_id": "Dumbbell_Flyes",
+   "match": "직접 지정"
+  },
+  "db_ohp": {
+   "en": "Dumbbell Shoulder Press",
+   "level": "중급",
+   "source_id": "Dumbbell_Shoulder_Press",
+   "match": "이름 일치"
+  },
+  "db_pullover": {
+   "en": "Bent-Arm Dumbbell Pullover",
+   "level": "중급",
+   "source_id": "Bent-Arm_Dumbbell_Pullover",
+   "match": "직접 지정"
+  },
+  "db_row": {
+   "en": "One-Arm Dumbbell Row",
+   "level": "초급",
+   "source_id": "One-Arm_Dumbbell_Row",
+   "match": "이름 일치"
+  },
+  "deadlift": {
+   "en": "Barbell Deadlift",
+   "level": "중급",
+   "source_id": "Barbell_Deadlift",
+   "match": "직접 지정"
+  },
+  "decline_bb": {
+   "en": "Decline Barbell Bench Press",
+   "level": "초급",
+   "source_id": "Decline_Barbell_Bench_Press",
+   "match": "직접 지정"
+  },
+  "dips": {
+   "en": "Dips - Chest Version",
+   "level": "중급",
+   "source_id": "Dips_-_Chest_Version",
+   "match": "직접 지정"
+  },
+  "elliptical": {
+   "en": "Elliptical Trainer",
+   "level": "중급",
+   "source_id": "Elliptical_Trainer",
+   "match": "직접 지정"
+  },
+  "face_pull": {
+   "en": "Face Pull",
+   "level": "중급",
+   "source_id": "Face_Pull",
+   "match": "이름 일치"
+  },
+  "front_raise": {
+   "en": "Front Dumbbell Raise",
+   "level": "초급",
+   "source_id": "Front_Dumbbell_Raise",
+   "match": "직접 지정"
+  },
+  "front_squat": {
+   "en": "Front Barbell Squat",
+   "level": "상급",
+   "source_id": "Front_Barbell_Squat",
+   "match": "직접 지정"
+  },
+  "glute_bridge": {
+   "en": "Butt Lift (Bridge)",
+   "level": "초급",
+   "source_id": "Butt_Lift_Bridge",
+   "match": "직접 지정"
+  },
+  "goblet": {
+   "en": "Goblet Squat",
+   "level": "초급",
+   "source_id": "Goblet_Squat",
+   "match": "이름 일치"
+  },
+  "good_morning": {
+   "en": "Good Morning",
+   "level": "중급",
+   "source_id": "Good_Morning",
+   "match": "이름 일치"
+  },
+  "hack_squat": {
+   "en": "Hack Squat",
+   "level": "초급",
+   "source_id": "Hack_Squat",
+   "match": "직접 지정"
+  },
+  "hammer_curl": {
+   "en": "Hammer Curls",
+   "level": "초급",
+   "source_id": "Hammer_Curls",
+   "match": "이름 일치"
+  },
+  "hanging_lr": {
+   "en": "Hanging Leg Raise",
+   "level": "상급",
+   "source_id": "Hanging_Leg_Raise",
+   "match": "이름 일치"
+  },
+  "hip_thrust": {
+   "en": "Barbell Hip Thrust",
+   "level": "중급",
+   "source_id": "Barbell_Hip_Thrust",
+   "match": "이름 일치"
+  },
+  "incline_bb": {
+   "en": "Barbell Incline Bench Press - Medium Grip",
+   "level": "초급",
+   "source_id": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+   "match": "직접 지정"
+  },
+  "incline_db": {
+   "en": "Incline Dumbbell Press",
+   "level": "초급",
+   "source_id": "Incline_Dumbbell_Press",
+   "match": "이름 일치"
+  },
+  "incline_fly": {
+   "en": "Incline Dumbbell Flyes",
+   "level": "초급",
+   "source_id": "Incline_Dumbbell_Flyes",
+   "match": "직접 지정"
+  },
+  "lat_pd": {
+   "en": "Wide-Grip Lat Pulldown",
+   "level": "초급",
+   "source_id": "Wide-Grip_Lat_Pulldown",
+   "match": "직접 지정"
+  },
+  "lateral": {
+   "en": "Side Lateral Raise",
+   "level": "초급",
+   "source_id": "Side_Lateral_Raise",
+   "match": "이름 일치"
+  },
+  "leg_curl": {
+   "en": "Lying Leg Curls",
+   "level": "초급",
+   "source_id": "Lying_Leg_Curls",
+   "match": "이름 일치"
+  },
+  "leg_ext": {
+   "en": "Leg Extensions",
+   "level": "초급",
+   "source_id": "Leg_Extensions",
+   "match": "이름 일치"
+  },
+  "leg_press": {
+   "en": "Leg Press",
+   "level": "초급",
+   "source_id": "Leg_Press",
+   "match": "이름 일치"
+  },
+  "lunge": {
+   "en": "Dumbbell Lunges",
+   "level": "초급",
+   "source_id": "Dumbbell_Lunges",
+   "match": "이름 일치"
+  },
+  "ohp": {
+   "en": "Standing Military Press",
+   "level": "초급",
+   "source_id": "Standing_Military_Press",
+   "match": "직접 지정"
+  },
+  "plank": {
+   "en": "Plank",
+   "level": "초급",
+   "source_id": "Plank",
+   "match": "이름 일치"
+  },
+  "preacher": {
+   "en": "Preacher Curl",
+   "level": "초급",
+   "source_id": "Preacher_Curl",
+   "match": "이름 일치"
+  },
+  "pullup": {
+   "en": "Pullups",
+   "level": "초급",
+   "source_id": "Pullups",
+   "match": "직접 지정"
+  },
+  "pushup": {
+   "en": "Pushups",
+   "level": "초급",
+   "source_id": "Pushups",
+   "match": "직접 지정"
+  },
+  "rdl": {
+   "en": "Romanian Deadlift",
+   "level": "중급",
+   "source_id": "Romanian_Deadlift",
+   "match": "이름 일치"
+  },
+  "rollout": {
+   "en": "Ab Roller",
+   "level": "중급",
+   "source_id": "Ab_Roller",
+   "match": "직접 지정"
+  },
+  "rower": {
+   "en": "Rowing, Stationary",
+   "level": "중급",
+   "source_id": "Rowing_Stationary",
+   "match": "직접 지정"
+  },
+  "run": {
+   "en": "Running, Treadmill",
+   "level": "초급",
+   "source_id": "Running_Treadmill",
+   "match": "이름 일치"
+  },
+  "seated_calf": {
+   "en": "Seated Calf Raise",
+   "level": "초급",
+   "source_id": "Seated_Calf_Raise",
+   "match": "이름 일치"
+  },
+  "seated_curl": {
+   "en": "Seated Leg Curl",
+   "level": "초급",
+   "source_id": "Seated_Leg_Curl",
+   "match": "이름 일치"
+  },
+  "seated_row": {
+   "en": "Seated Cable Rows",
+   "level": "초급",
+   "source_id": "Seated_Cable_Rows",
+   "match": "이름 일치"
+  },
+  "shrug_bb": {
+   "en": "Barbell Shrug",
+   "level": "초급",
+   "source_id": "Barbell_Shrug",
+   "match": "이름 일치"
+  },
+  "shrug_db": {
+   "en": "Dumbbell Shrug",
+   "level": "초급",
+   "source_id": "Dumbbell_Shrug",
+   "match": "이름 일치"
+  },
+  "skull": {
+   "en": "Lying Triceps Press",
+   "level": "중급",
+   "source_id": "Lying_Triceps_Press",
+   "match": "직접 지정"
+  },
+  "smith_bench": {
+   "en": "Smith Machine Bench Press",
+   "level": "초급",
+   "source_id": "Smith_Machine_Bench_Press",
+   "match": "이름 일치"
+  },
+  "smith_squat": {
+   "en": "Smith Machine Squat",
+   "level": "초급",
+   "source_id": "Smith_Machine_Squat",
+   "match": "이름 일치"
+  },
+  "squat": {
+   "en": "Barbell Squat",
+   "level": "초급",
+   "source_id": "Barbell_Squat",
+   "match": "직접 지정"
+  },
+  "stair": {
+   "en": "Stairmaster",
+   "level": "중급",
+   "source_id": "Stairmaster",
+   "match": "직접 지정"
+  },
+  "stepup": {
+   "en": "Dumbbell Step Ups",
+   "level": "중급",
+   "source_id": "Dumbbell_Step_Ups",
+   "match": "이름 일치"
+  },
+  "straight_pd": {
+   "en": "Straight-Arm Pulldown",
+   "level": "초급",
+   "source_id": "Straight-Arm_Pulldown",
+   "match": "이름 일치"
+  },
+  "sumo_dl": {
+   "en": "Sumo Deadlift",
+   "level": "중급",
+   "source_id": "Sumo_Deadlift",
+   "match": "이름 일치"
+  },
+  "tbar_row": {
+   "en": "T-Bar Row with Handle",
+   "level": "초급",
+   "source_id": "T-Bar_Row_with_Handle",
+   "match": "직접 지정"
+  },
+  "tri_ext_m": {
+   "en": "Machine Triceps Extension",
+   "level": "초급",
+   "source_id": "Machine_Triceps_Extension",
+   "match": "이름 일치"
+  },
+  "triceps_pd": {
+   "en": "Triceps Pushdown",
+   "level": "초급",
+   "source_id": "Triceps_Pushdown",
+   "match": "이름 일치"
+  },
+  "upright_row": {
+   "en": "Upright Barbell Row",
+   "level": "초급",
+   "source_id": "Upright_Barbell_Row",
+   "match": "직접 지정"
+  }
+ },
+ "unmatched": [
+  "assist_dip",
+  "assist_pullup",
+  "back_ext",
+  "belt_squat",
+  "bulgarian",
+  "cable_curl",
+  "cable_fly_low",
+  "cable_kb",
+  "cable_lateral",
+  "cable_oh",
+  "captain",
+  "chest_press",
+  "chest_tbar",
+  "db_rdl",
+  "decline_cp",
+  "glute_kb_m",
+  "hip_abd",
+  "hip_add",
+  "hip_thrust_m",
+  "incline_cp",
+  "incline_walk",
+  "kb_swing",
+  "lateral_m",
+  "low_row",
+  "lp_calf",
+  "oh_ext",
+  "pec_deck",
+  "pendulum",
+  "pullover_m",
+  "rear_delt",
+  "rev_pec",
+  "rope_pd",
+  "row_m",
+  "seated_dip",
+  "shoulder_press_m",
+  "smith_lunge",
+  "smith_ohp",
+  "torso_rot",
+  "tri_kb",
+  "v_squat",
+  "wide_row"
+ ]
+}

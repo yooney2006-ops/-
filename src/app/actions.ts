@@ -3,23 +3,34 @@ import { EXMAP, PARTS, WD } from "./catalog";
 import { GOALS, calcTargets, sumMeals } from "./goals";
 import { NUTRI_SCHEMA, allFoods, closeSheet, drawExSheet, drawFoodSheet, exListHtml, exPreviewHtml, exSheet, foodPick, foodResults, foodSheet, getItems, normFood, openSheet, profileSheet, saveTarget, startPickViewer, tipsSheet } from "./sheets";
 import { S, dayKey, flush, markDirty, replaceState, ui } from "./state";
-import { startTimer, tick, timer } from "./timer";
-import { cloneItems, doneSets, e1rm, exInfo, exPart, exType, feedbackHtml, groupWeights, makeTemplate, mkItem, planCheckHtml, planFeedback, planStats, recovery } from "./training";
+import { startTimer, stopTimer, tick, timer, buzz } from "./timer";
+import { askNotify, primeSound, saveTab } from "../platform/session";
+import { cloneItems, doneSets, e1rm, exInfo, exPart, exType, feedbackHtml, groupWeights, makeTemplate, mkItem, planCheckHtml, planFeedback, planStats, recovery, prevRecord } from "./training";
 import { addDays, day, esc, md, peekDay, r0, r1, toast, uid, wIdx, ymd } from "./util";
-import { MGROUP, bestE1rmBefore, defaultMeal, exDetail, guideCards, guideFilter, lastWeightDate, render } from "./views";
+import { MGROUP, bestE1rmBefore, defaultMeal, exDetail, guideCards, guideFilter, lastWeightDate, render, refreshCard, stepOf, showCard, WIDGETS, widgets, layoutSheetHtml } from "./views";
 import { EX } from "../data/exercises.js";
-import { aiErr, askJSON, askText, setAIToken } from "../platform/ai";
-import { countDays, downloadJSON, parseBackup, toBackup } from "../platform/backup";
+import { aiErr, setAIToken } from "../platform/ai";
+import { cachedJSON, cachedText, photoJSON, ingestAIFoods, logHit } from "../platform/aiflow";
+import { resolveFoodText } from "../platform/kb";
+import { whySheet, kbAnswerHtml, dbStatusSheet } from "./evidence";
+import { countDays, downloadCSV, downloadJSON, parseBackup, toBackup, workoutRows } from "../platform/backup";
 
 /* 액션
    ============================================================ */
 export const A={
-  tab(el){ ui.tab=el.dataset.tab; ui.editDay=null; render(); window.scrollTo(0,0); },
+  tab(el){ ui.tab=el.dataset.tab; ui.editDay=null; saveTab(ui.tab); render(); window.scrollTo(0,0); },
   day(el){ ui.date=addDays(ui.date,+el.dataset.d); render(); },
   today(){ ui.date=ymd(new Date()); render(); },
-  goDate(el){ ui.date=el.dataset.date; render(); },
+  goDate(el){ ui.date=el.dataset.date; if(ui.tab==="stats"){ ui.tab="workout"; saveTab(ui.tab); window.scrollTo(0,0); } render(); }, // 분석 탭의 달력에서 누르면 그날 운동 기록으로
   openProfile(){ profileSheet(); },
-  async exportData(){ await flush(); downloadJSON(`gymlog-${ymd(new Date())}.json`, toBackup(S)); toast("백업 파일을 내려받았어요"); },
+  layout(){ openSheet(layoutSheetHtml()); },
+  layoutPreset(el){ const p=el.dataset.p; const w={}; for(const [k,,,def] of WIDGETS) w[k]=p==="all"?true:p==="min"?false:def; if(p==="all") w.expand=true; S.main.widgets=w; markDirty("main"); render(); openSheet(layoutSheetHtml()); },
+  cardMore(el){ const it=day().workout.items[+el.dataset.i]; const k=it.id||+el.dataset.i; ui.openCards=ui.openCards||{}; ui.openCards[k]=!ui.openCards[k]; const y=el.closest(".card").getBoundingClientRect().top; render();
+    const c=document.querySelectorAll("#view .card.ex")[+el.dataset.i]; if(c) window.scrollBy(0,c.getBoundingClientRect().top-y); }, // 누른 카드가 제자리에 있게
+  why(el){ whySheet(el.dataset.rule.split(",")); },
+  dbStatus(){ dbStatusSheet(); },
+  async exportData(){ await flush(); S.main.lastBackup=new Date().toISOString(); markDirty("main"); await flush(); downloadJSON(`gymlog-${ymd(new Date())}.json`, toBackup(S)); toast("백업 파일을 내려받았어요"); if(ui.tab==="stats") render(); },
+  async exportCSV(){ await flush(); const n=downloadCSV(`gymlog-운동기록-${ymd(new Date())}.csv`, workoutRows(S)); toast(n?`세트 ${n}개를 CSV로 내려받았어요`:"완료한 세트가 아직 없어요"); },
   importData(){ document.getElementById("importIn").click(); },
   saveAIToken(){ setAIToken(document.getElementById("aiToken").value.trim()); toast("AI 접속 암호를 저장했어요"); },
   closeSheet(){ closeSheet(); },
@@ -41,9 +52,14 @@ export const A={
   async aiLookup(){ ui.sheet.mode="ai"; ui.sheet.aiText=ui.sheet.q+" 1인분"; drawFoodSheet(); A.aiParse(); },
   async aiParse(){
     const txt=(document.getElementById("aiFoodIn")?.value||"").trim(); if(!txt) return toast("먹은 음식을 적어 주세요");
-    ui.sheet.aiText=txt; const out=document.getElementById("aiParseOut"); out.innerHTML=`<p class="muted small">Claude가 분석 중…</p>`; ui.aiBusy=true;
-    try{ const r=await askJSON(`너는 한국 영양사다. 사용자가 먹은 음식 설명을 음식 단위로 나누고, 식품의약품안전처 식품영양성분 DB나 일반적인 한국 제품·프랜차이즈 영양성분표 기준으로 1회 제공량 영양성분을 추정하라. 브랜드 제품이면 그 제품 표기를 우선한다.\n${NUTRI_SCHEMA}\n\n사용자 입력: ${txt}`);
-      ui.sheet.parsed=(r.items||[]).map(normFood).map(f=>({...f,src:"ai"})); ui.sheet.note=r.note||""; }
+    ui.sheet.aiText=txt; const out=document.getElementById("aiParseOut");
+    // 1차: 자체 DB에서 음식과 수량을 모두 찾으면 AI를 부르지 않는다
+    const local=resolveFoodText(txt,S.main.customFoods||[]);
+    if(local){ logHit("food_text","db"); ui.sheet.parsed=local.map(x=>({...normFood({...x.food,qty:x.qty}),src:"db"})); ui.sheet.note="자체 DB에서 찾았어요 (AI 호출 없음)"; drawFoodSheet(); return; }
+    out.innerHTML=`<p class="muted small">DB에 없는 음식이 있어 Claude가 분석 중…</p>`; ui.aiBusy=true;
+    try{ const r=await cachedJSON("food_text",txt,`너는 한국 영양사다. 사용자가 먹은 음식 설명을 음식 단위로 나누고, 식품의약품안전처 식품영양성분 DB나 일반적인 한국 제품·프랜차이즈 영양성분표 기준으로 1회 제공량 영양성분을 추정하라. 브랜드 제품이면 그 제품 표기를 우선한다.\n${NUTRI_SCHEMA}\n\n사용자 입력: ${txt}`);
+      const checked=await ingestAIFoods((r.items||[]).map(normFood),S.main.customFoods||[],"text",txt);
+      ui.sheet.parsed=checked.map(f=>({...f,src:"ai"})); ui.sheet.note=r.note||""; }
     catch(e){ ui.sheet.parsed=null; out.innerHTML=`<p class="small" style="color:var(--bad)">${esc(aiErr(e))}</p>`; ui.aiBusy=false; return; }
     ui.aiBusy=false; drawFoodSheet();
   },
@@ -52,15 +68,16 @@ export const A={
     const note=document.getElementById("photoNote").value; const out=document.getElementById("aiParseOut"); out.innerHTML=`<p class="muted small">사진을 읽는 중…</p>`; ui.aiBusy=true;
     try{
       const prompt=`사진이 영양성분표면 표기 값을 그대로 읽고(총 내용량과 1회 제공량 구분), 음식 사진이면 음식과 양을 추정해 영양성분을 계산하라. 메모: ${note||"없음"}\n${NUTRI_SCHEMA}`;
-      const r = await askJSON(prompt,{images:[f]});
-      ui.sheet.parsed=(r.items||[]).map(normFood).map(x=>({...x,src:"ai"})); ui.sheet.note=r.note||"";
+      const r = await photoJSON(prompt,[f]);
+      const checked=await ingestAIFoods((r.items||[]).map(normFood),S.main.customFoods||[],"photo",note);
+      ui.sheet.parsed=checked.map(x=>({...x,src:"ai"})); ui.sheet.note=r.note||"";
     }catch(e){ out.innerHTML=`<p class="small" style="color:var(--bad)">${esc(aiErr(e))}</p>`; ui.aiBusy=false; return; }
     ui.aiBusy=false; drawFoodSheet();
   },
   dropParsed(el){ ui.sheet.parsed.splice(+el.dataset.i,1); drawFoodSheet(); },
   addParsed(){
-    const d=day(); ui.sheet.parsed.forEach(f=>{ d.meals.push({...f,id:uid(),meal:ui.sheet.meal}); if(!(S.main.customFoods||[]).find(c=>c.name===f.name)){ const {qty,...base}=f; (S.main.customFoods=S.main.customFoods||[]).unshift(base); } });
-    S.main.customFoods=S.main.customFoods.slice(0,150);
+    const d=day(); ui.sheet.parsed.forEach(f=>{ const {check,...m}=f; d.meals.push({...m,id:uid(),meal:ui.sheet.meal}); });
+    S.main.customFoods=(S.main.customFoods||[]).slice(0,150);
     markDirty(dayKey(ui.date)); markDirty("main"); closeSheet(); render(); toast("추가했어요. 다음부터는 검색에서 바로 나와요");
   },
   manualAdd(){
@@ -76,7 +93,7 @@ export const A={
     const w=(dd.workout?.items||[]).filter(it=>doneSets(it).length).map(it=>it.name).join(", ")||"없음";
     ui.aiBusy=true; out.outerHTML=`<div class="ai-out" style="margin-top:10px" id="aiFoodOut">분석 중…</div>`;
     try{
-      const txt=await askText(`너는 헬스 트레이너 겸 영양사다. 한국어 반말 말고 친근한 존댓말로, 6~9줄 이내로 답하라. 마크다운 제목 없이 **굵게**만 사용.
+      const txt=await cachedText("diet_coach",[ui.date,p.goal,p.weight,T.kcal,r0(t.kcal),r0(t.carb),r0(t.protein),r0(t.fat),w,(dd.meals||[]).map(m=>m.name+"x"+m.qty).join("/")].join("|"),`너는 헬스 트레이너 겸 영양사다. 한국어 반말 말고 친근한 존댓말로, 6~9줄 이내로 답하라. 마크다운 제목 없이 **굵게**만 사용.
 사용자: ${p.sex==="m"?"남":"여"} ${p.age}세 ${p.height}cm ${p.weight}kg, 목표 ${GOALS[p.goal]}.
 오늘 목표: ${T.kcal}kcal, 탄 ${T.carb}g, 단 ${T.protein}g, 지 ${T.fat}g.
 오늘 섭취 합계: ${r0(t.kcal)}kcal, 탄 ${r0(t.carb)}g, 단 ${r0(t.protein)}g, 지 ${r0(t.fat)}g, 당 ${r0(t.sugar)}g, 나트륨 ${r0(t.sodium)}mg.
@@ -88,10 +105,25 @@ export const A={
     ui.aiBusy=false; render();
   },
   /* 운동 기록 */
-  loadPlan(){
-    const d=day(); const p=S.main.plan[wIdx(ui.date)];
+  pickPlan(){ // 다른 요일의 루틴이나 저장해 둔 내 루틴을 골라 오늘 운동으로
+    const wi=wIdx(ui.date); const row=(attr,title,its,tag,del)=>`<div class="res" style="cursor:default;min-height:56px;gap:6px"><button class="exrow" data-act="loadPlan" ${attr}><span><b>${esc(title)}</b>${tag||""}<br><span class="xs muted">${its.length}개 운동 · ${esc(its.slice(0,3).map(it=>it.name).join(", "))}${its.length>3?" 외":""}</span></span></button><span class="num small">${its.reduce((a,it)=>a+it.sets.length,0)}세트</span>${del||""}</div>`;
+    const rts=S.main.routines||[]; const today=day().workout.items;
+    openSheet(`<div class="spread"><h2>루틴 불러오기</h2><button class="btn sm ghost" data-act="closeSheet">닫기</button></div>
+    <h3 style="margin-top:10px">내 루틴</h3><div class="results">${rts.map(r=>row(`data-r="${r.id}"`,r.name,r.items,"",`<button class="btn sm icon ghost" data-act="delRoutine" data-r="${r.id}" aria-label="${esc(r.name)} 루틴 삭제" style="min-width:44px;min-height:44px">✕</button>`)).join("")||`<div class="empty small">저장한 루틴이 없어요. 요일에 묶이지 않는 루틴(예: 상체 A, 홈트)을 저장해 두세요.</div>`}</div>
+    <div class="row" style="margin-top:8px"><button class="btn" data-act="saveRoutine" ${today.length?"":"disabled"}>오늘 운동을 루틴으로 저장</button></div>
+    <h3 style="margin-top:14px">최근 운동 <span class="xs muted">그날 한 그대로 다시</span></h3><div class="results">${Object.keys(S.days).filter(d=>d<ui.date&&(S.days[d].workout?.items||[]).some(it=>doneSets(it).length)).sort().reverse().slice(0,5).map(d=>row(`data-d="${d}"`,`${+d.slice(5,7)}/${+d.slice(8)} (${WD[wIdx(d)]})${S.days[d].workout.planTitle?" · "+S.days[d].workout.planTitle:""}`,S.days[d].workout.items)).join("")||`<div class="empty small">아직 기록이 없어요.</div>`}</div>
+    <h3 style="margin-top:14px">주간 플랜</h3><div class="results">${S.main.plan.map((p,i)=>p.items.length?row(`data-i="${i}"`,`${WD[i]}요일 · ${p.title}`,p.items,i===wi?` <span class="chip">오늘</span>`:""):"").join("")||`<div class="empty small">저장된 플랜이 없어요.</div>`}</div>`); },
+  saveRoutine(){ const items=day().workout.items; if(!items.length) return; const def=day().workout.planTitle||"내 루틴"; const name=(prompt("루틴 이름",def)||"").trim().slice(0,30); if(!name) return;
+    const rts=(S.main.routines=S.main.routines||[]); const ex=rts.find(r=>r.name===name); const body=cloneItems(items);
+    if(ex){ if(!confirm(`"${name}" 루틴이 이미 있어요. 덮어쓸까요?`)) return; ex.items=body; } else rts.push({id:uid(),name,items:body});
+    markDirty("main"); A.pickPlan(); toast(`"${name}" 루틴을 저장했어요`); },
+  delRoutine(el){ const rts=S.main.routines||[]; const i=rts.findIndex(r=>r.id===el.dataset.r); if(i<0) return; const [r]=rts.splice(i,1); ui.undoRoutine={r,i}; markDirty("main"); A.pickPlan(); toast(`"${r.name}" 삭제됨`,{label:"되돌리기",act:"undoRoutine"}); },
+  undoRoutine(){ const u=ui.undoRoutine; if(!u) return; ui.undoRoutine=null; (S.main.routines=S.main.routines||[]).splice(u.i,0,u.r); markDirty("main"); if(document.getElementById("sheet").classList.contains("open")) A.pickPlan(); toast("되돌렸어요"); },
+  loadPlan(el){
+    const d=day(); const rt=el&&el.dataset.r?(S.main.routines||[]).find(r=>r.id===el.dataset.r):null; const past=el&&el.dataset.d?S.days[el.dataset.d]:null;
+    const pi=rt||past?-1:el&&el.dataset.i!=null?+el.dataset.i:wIdx(ui.date); const p=rt?{title:rt.name,items:rt.items}:past?{title:past.workout.planTitle||"지난 운동",items:past.workout.items}:S.main.plan[pi]; if(!p) return;
     if(d.workout.items.some(it=>doneSets(it).length)&&!ui.confirmLoad){ ui.confirmLoad=true; toast("완료한 세트가 있어요. 한 번 더 누르면 덮어써요"); setTimeout(()=>ui.confirmLoad=false,3000); return; }
-    ui.confirmLoad=false; d.workout.items=cloneItems(p.items); d.workout.planTitle=p.title; markDirty(dayKey(ui.date)); render();
+    ui.confirmLoad=false; d.workout.items=cloneItems(p.items); d.workout.planTitle=p.title; markDirty(dayKey(ui.date)); if(el&&(el.dataset.i!=null||rt||past)) closeSheet(); render(); if(past) toast(`${el.dataset.d.slice(5).replace("-","/")} 운동을 불러왔어요 (그날의 무게·횟수 그대로)`); else if(rt) toast(`"${rt.name}" 루틴을 불러왔어요`); else if(pi!==wIdx(ui.date)) toast(`${WD[pi]}요일 루틴(${p.title})을 불러왔어요`);
   },
   addEx(el){ exSheet(el.dataset.target); },
   exPart(el){ ui.sheet.part=el.dataset.p; drawExSheet(); },
@@ -102,7 +134,8 @@ export const A={
     if(st.swapIdx!=null){ const old=items[st.swapIdx]; const n=mkItem(e,old.sets.length,e.type==="t"?e.def[1]:(+old.sets[0]?.r||e.def[1]),e.def[2]); items[st.swapIdx]=n; toast(`${old.name} → ${e.name}`); }
     else items.push(mkItem(e,e.def[0],e.def[1],e.def[2]));
     if(st.target!=="log"&&S.main.plan[+st.target.slice(4)].title==="휴식") S.main.plan[+st.target.slice(4)].title="운동";
-    saveTarget(st.target); closeSheet(); render();
+    const at=st.swapIdx!=null?st.swapIdx:items.length-1, tg=st.target;
+    saveTarget(st.target); closeSheet(); render(); showCard(tg,at);
   },
   pickCustomEx(){
     const st=ui.sheet; const items=getItems(st.target);
@@ -111,14 +144,32 @@ export const A={
     saveTarget(st.target); closeSheet(); render();
   },
   swap(el){ exSheet(el.dataset.target,+el.dataset.i); },
-  delEx(el){ const items=getItems(el.dataset.target); items.splice(+el.dataset.i,1); saveTarget(el.dataset.target); render(); },
-  moveEx(el){ const items=getItems(el.dataset.target); const i=+el.dataset.i; if(i<=0) return; [items[i-1],items[i]]=[items[i],items[i-1]]; saveTarget(el.dataset.target); render(); },
+  delEx(el){ const tg=el.dataset.target, items=getItems(tg), i=+el.dataset.i, it=items[i]; if(!it) return;
+    // 완료한 세트가 있는 운동은 한 번 더 눌러야 지워진다
+    if(tg==="log"&&doneSets(it).length&&ui.confirmDel!==i){ ui.confirmDel=i; toast(`완료한 세트 ${doneSets(it).length}개가 있어요. 한 번 더 누르면 지워요`); setTimeout(()=>{ if(ui.confirmDel===i) ui.confirmDel=null; },3000); return; }
+    ui.confirmDel=null; items.splice(i,1); ui.undoDel={target:tg,i,item:it,date:ui.date,editDay:ui.editDay}; saveTarget(tg); render(); toast(`${it.name} 삭제됨`,{label:"되돌리기",act:"undoDel"}); },
+  undoDel(){ const u=ui.undoDel; if(!u) return; ui.undoDel=null; if(u.target==="log"&&u.date!==ui.date){ ui.date=u.date; } if(u.target!=="log") ui.editDay=u.editDay;
+    const items=getItems(u.target); items.splice(Math.min(u.i,items.length),0,u.item); saveTarget(u.target); render(); toast("되돌렸어요"); },
+  moveEx(el){ const items=getItems(el.dataset.target); const i=+el.dataset.i, j=i+(+el.dataset.d||-1); if(j<0||j>=items.length) return; [items[j],items[i]]=[items[i],items[j]]; saveTarget(el.dataset.target); render(); },
+  loadPrev(el){ const it=day().workout.items[+el.dataset.i]; const pr=prevRecord(it.name,ui.date); if(!pr) return;
+    let n=0,wk=0; it.sets.forEach(s=>{ if(s.kind==="w") return; const p=pr.sets[wk]||pr.sets[pr.sets.length-1]; wk++; if(!s.done&&p){ s.w=p.w; s.r=p.r; n++; } }); // 워밍업은 건드리지 않고 본 세트끼리 순서를 맞춘다
+    markDirty(dayKey(ui.date)); render(); buzz(8); toast(n?"지난 기록을 불러왔어요":"이미 끝낸 세트는 그대로 뒀어요"); },
   toggleSet(el){ const it=day().workout.items[+el.dataset.i]; const s=it.sets[+el.dataset.k]; s.done=!s.done; if(s.done) s.t=Date.now(); else { delete s.t; delete s.pr; }
-    if(s.done&&exType(it)==="w"){ const prev=bestE1rmBefore(it.name,ui.date,s); const cur=e1rm(+s.w,+s.r); if(prev>0&&cur>prev+.01){ s.pr=true; toast(`신기록! ${it.name} 추정 1RM ${r1(cur)}kg (이전 ${r1(prev)}kg)`); } } markDirty(dayKey(ui.date)); render(); if(s.done&&exType(it)!=="t"){ const base=it.rest||exInfo(it)?.rest||90; startTimer(base+(String(s.rir)==="0"?30:0)); } },
+    if(!s.done&&ui.timerBy===el.dataset.i+"-"+el.dataset.k){ stopTimer(); ui.timerBy=null; } // 잘못 누른 체크를 풀면 그 세트가 띄운 타이머도 끈다
+    primeSound(); ui.justDone=s.done?el.dataset.i+"-"+el.dataset.k:null; buzz(s.done?14:6); setTimeout(()=>{ui.justDone=null;},400);
+    if(s.done&&exType(it)==="w"&&s.kind!=="w"){ const prev=bestE1rmBefore(it.name,ui.date,s); const cur=e1rm(+s.w,+s.r); if(prev>0&&cur>prev+.01){ s.pr=true; buzz([20,60,30]); toast(`신기록! ${it.name} 추정 1RM ${r1(cur)}kg (이전 ${r1(prev)}kg)`); } } markDirty(dayKey(ui.date)); render(); if(s.done&&exType(it)!=="t"){ const base=it.rest||exInfo(it)?.rest||90; const nextSet=it.sets[+el.dataset.k+1]; const items=day().workout.items, ii=+el.dataset.i;
+      // 다음 세트가 드롭세트면 쉬지 않고 바로, 슈퍼세트의 앞 운동이면 다음 운동으로 넘어간다
+      if(nextSet&&nextSet.kind==="d"&&!nextSet.done){ toast("드롭세트 — 무게를 내리고 바로 이어서"); }
+      else if(it.ss&&items[ii+1]){ toast(`슈퍼세트 — 바로 ${items[ii+1].name}`); }
+      else { startTimer(s.kind==="w"?Math.min(60,base):base+(String(s.rir)==="0"?30:0)); ui.timerBy=el.dataset.i+"-"+el.dataset.k; } } },
+  setKind(el){ const tg=el.dataset.target, it=getItems(tg)[+el.dataset.i], s=it.sets[+el.dataset.k]; const order=["","w","d"]; const nx=order[(order.indexOf(s.kind||"")+1)%3];
+    if(nx) s.kind=nx; else delete s.kind; if(nx==="w") delete s.pr; saveTarget(tg); render(); buzz(6); toast(nx==="w"?"워밍업 세트 — 볼륨·세트 수·회복도 계산에서 빠져요":nx==="d"?"드롭세트 — 앞 세트 뒤에 쉬지 않고 이어서 해요":"본 세트"); },
+  superset(el){ const tg=el.dataset.target, items=getItems(tg), i=+el.dataset.i, it=items[i]; if(!it.ss&&i>=items.length-1) return toast("아래에 묶을 운동이 없어요");
+    if(it.ss) delete it.ss; else it.ss=true; saveTarget(tg); render(); toast(it.ss?`${it.name} + ${items[i+1].name} 슈퍼세트 — 두 번째 운동을 끝낸 뒤에만 휴식 타이머가 떠요`:"슈퍼세트를 풀었어요"); },
   delSet(el){ const items=getItems(el.dataset.target); items[+el.dataset.i].sets.splice(+el.dataset.k,1); saveTarget(el.dataset.target); render(); },
   setCount(el){ const it=getItems(el.dataset.target)[+el.dataset.i]; if(+el.dataset.d>0){ const last=it.sets[it.sets.length-1]||{w:0,r:10}; it.sets.push({w:last.w,r:last.r,done:false}); } else { const k=it.sets.map(s=>s.done).lastIndexOf(false); if(it.sets.length>1) it.sets.splice(k>=0?k:it.sets.length-1,1); } saveTarget(el.dataset.target); render(); },
-  bulk(el){ const it=getItems(el.dataset.target)[+el.dataset.i]; const f=el.dataset.f, d=+el.dataset.d; it.sets.forEach(s=>{ if(!s.done) s[f]=Math.max(0,r1((+s[f]||0)+d)); }); saveTarget(el.dataset.target); render(); },
-  applySug(el){ const it=day().workout.items[+el.dataset.i]; it.sets.forEach(s=>{ if(!s.done){ s.w=+el.dataset.w; s.r=+el.dataset.r; } }); markDirty(dayKey(ui.date)); render(); toast("추천 무게·횟수를 적용했어요"); },
+  bulk(el){ const it=getItems(el.dataset.target)[+el.dataset.i]; const f=el.dataset.f, d=f==="w"?Math.sign(+el.dataset.d)*stepOf(it):+el.dataset.d; it.sets.forEach(s=>{ if(!s.done) s[f]=Math.max(0,r1((+s[f]||0)+d)); }); saveTarget(el.dataset.target); render(); },
+  applySug(el){ const it=day().workout.items[+el.dataset.i]; it.sets.forEach(s=>{ if(!s.done&&s.kind!=="w"){ s.w=+el.dataset.w; s.r=+el.dataset.r; } }); markDirty(dayKey(ui.date)); render(); toast("추천 무게·횟수를 적용했어요"); },
   saveToPlan(){ const wi=wIdx(ui.date); const items=day().workout.items; S.main.plan[wi].items=cloneItems(items); if(S.main.plan[wi].title==="휴식") S.main.plan[wi].title=day().workout.planTitle||"운동"; markDirty("main"); toast(`${WD[wi]}요일 플랜에 반영했어요`); },
   genRecovery(){
     const d=day(); if(d.workout.items.some(it=>doneSets(it).length)) return toast("이미 기록 중인 운동이 있어요");
@@ -136,7 +187,7 @@ export const A={
   tips(el){ tipsSheet(el.dataset.ex,el.dataset.name); },
   async aiTip(el){
     const out=document.getElementById("tipOut"); out.innerHTML=`<div class="ai-out" style="margin-top:10px">불러오는 중…</div>`;
-    try{ await askText(`헬스 트레이너로서 "${el.dataset.name}" 운동을 설명하라. 한국어 존댓말, 마크다운 제목 없이 **굵게**만. 1) 타깃 근육 2) 셋업 3) 동작 포인트 3~4개 4) 흔한 실수와 교정 5) 초보 추천 세트×횟수. 15줄 이내.`, t=>{ out.innerHTML=`<div class="ai-out" style="margin-top:10px">${md(t)}</div>`; }); }
+    try{ await cachedText("ex_tip",el.dataset.name,`헬스 트레이너로서 "${el.dataset.name}" 운동을 설명하라. 한국어 존댓말, 마크다운 제목 없이 **굵게**만. 1) 타깃 근육 2) 셋업 3) 동작 포인트 3~4개 4) 흔한 실수와 교정 5) 초보 추천 세트×횟수. 15줄 이내.`, t=>{ out.innerHTML=`<div class="ai-out" style="margin-top:10px">${md(t)}</div>`; }); }
     catch(e){ out.innerHTML=`<p class="small" style="color:var(--bad)">${esc(aiErr(e))}</p>`; }
   },
   /* 플랜 */
@@ -150,7 +201,7 @@ export const A={
     const o=readReq(); ui.reqLevel=o.level; const out=document.getElementById("aiPlanOut"); out.innerHTML=`<p class="muted small" style="margin-top:10px">Claude가 플랜을 짜는 중… (10~30초)</p>`; ui.aiBusy=true;
     const p=S.main.profile; const rec=Object.keys(S.days).sort().slice(-14).flatMap(d=>(S.days[d].workout?.items||[]).filter(it=>doneSets(it).length).map(it=>{const s=doneSets(it).reduce((a,b)=>(+b.w>+a.w?b:a));return `${it.name} ${s.w}kg×${s.r}`;})).slice(-20);
     try{
-      const r=await askJSON(`너는 경력 많은 퍼스널 트레이너다. 아래 조건에 맞는 1주 운동 플랜을 설계하라.
+      const r=await cachedJSON("plan_gen",JSON.stringify([o,p.sex,p.age,p.weight,p.goal,rec]),`너는 경력 많은 퍼스널 트레이너다. 아래 조건에 맞는 1주 운동 플랜을 설계하라.
 사용자: ${p.sex==="m"?"남":"여"} ${p.age}세 ${p.height}cm ${p.weight}kg, 식단 목표 ${GOALS[p.goal]}
 운동 목표: ${({hyper:"근비대",strength:"근력",cut:"체지방 감량",fit:"체력·건강"})[o.goal]}, 주 ${o.days}회, 경력 ${({beg:"초보",mid:"중급",adv:"상급"})[o.level]}, 장소 ${o.equip==="gym"?"헬스장":"홈트(덤벨·맨몸)"}
 강조 부위: ${o.focus.join(", ")||"없음"}
@@ -180,7 +231,7 @@ JSON만 출력: {"title":"플랜 이름","summary":"설계 의도 2~3문장","da
     const lv=S.main.level||"mid", st=planStats(S.main.plan), fb=planFeedback(S.main.plan,lv), p=S.main.profile;
     const planTxt=S.main.plan.map((d,i)=>`${WD[i]}: ${d.items.length?d.title+" — "+d.items.map(it=>`${it.name} ${it.sets.length}×${it.sets[0]?.r}${it.rirT?` RIR${it.rirT}`:""}`).join(", "):"휴식"}`).join("\n");
     const stTxt=MGROUP.map(([g])=>`${g} ${r1(st[g].sets)}세트/주${st[g].freq}회/세션최대${r1(st[g].maxS)}`).join(", ");
-    try{ await askText(`너는 근거 기반 코칭을 하는 퍼스널 트레이너다. 아래 주간 플랜을 평가하라. 한국어 존댓말, 마크다운 제목 없이 **굵게**만, 14줄 이내.
+    try{ await cachedText("plan_feedback",[lv,p.sex,p.age,p.weight,p.goal,planTxt].join("|"),`너는 근거 기반 코칭을 하는 퍼스널 트레이너다. 아래 주간 플랜을 평가하라. 한국어 존댓말, 마크다운 제목 없이 **굵게**만, 14줄 이내.
 사용자: ${p.sex==="m"?"남":"여"} ${p.age}세 ${p.weight}kg, 목표 ${GOALS[p.goal]}, 경력 ${({beg:"초보",mid:"중급",adv:"상급"})[lv]}.
 플랜:
 ${planTxt}
@@ -197,17 +248,20 @@ ${planTxt}
   pickBrand(el){ ui.sheet.brand=el.dataset.p; document.getElementById("exRes").innerHTML=exListHtml(); document.querySelectorAll("[data-act=pickBrand]").forEach(b=>b.classList.toggle("on",b.dataset.p===ui.sheet.brand)); },
   exDetail(el){ exDetail(el.dataset.id); },
   figPlay(el){ if(!ui.fig)return; const on=ui.fig.toggle(); el.textContent=on?"일시정지":"재생"; },
-  figSpeed(el){ if(!ui.fig)return; ui.slow=!ui.slow; ui.fig.setSpeed(ui.slow?.45:1); el.textContent=ui.slow?"보통 속도":"느리게"; },
+  figSpeed(el){ if(!ui.fig)return; ui.slow=!ui.slow; ui.fig.setSpeed(ui.slow?.5:1); el.textContent=ui.slow?"0.5x":"1.0x"; },
+  figGuide(el){ if(!ui.fig)return; const on=!el.classList.contains("on"); el.classList.toggle("on",on); el.setAttribute("aria-pressed",on); ui.fig.setGuide(el.dataset.g,on); },
   figView(el){ if(!ui.fig)return; if(el.dataset.y==="def") ui.fig.defaultView(); else ui.fig.setView(+el.dataset.y,12); },
   addExToday(el){ const e=EXMAP[el.dataset.id]; day().workout.items.push(mkItem(e,e.def[0],e.def[1],e.def[2])); markDirty(dayKey(ui.date)); closeSheet(); ui.tab="workout"; render(); toast(`${e.name} 추가됨`); },
   saveWeight(){ const v=+document.getElementById("bwIn").value; if(!v||v<25||v>300) return toast("체중을 kg로 입력해 주세요"); day().weight=r1(v); markDirty(dayKey(ui.date)); if(ui.date>=lastWeightDate()){ S.main.profile.weight=r1(v); markDirty("main"); } render(); toast("체중을 기록했어요"); },
   async aiAsk(){
-    const q=document.getElementById("gAsk").value.trim(); if(!q) return; const out=document.getElementById("gAskOut"); out.innerHTML=`<div class="ai-out" style="margin-top:10px">답변 준비 중…</div>`;
-    try{ await askText(`헬스 트레이너로서 다음 질문에 답하라. 한국어 존댓말, 마크다운 제목 없이 **굵게**만, 12줄 이내. 통증이 심하거나 지속되면 전문의 상담을 권하라.\n질문: ${q}`, t=>{ out.innerHTML=`<div class="ai-out" style="margin-top:10px">${md(t)}</div>`; }); }
-    catch(e){ out.innerHTML=`<p class="small" style="color:var(--bad)">${esc(aiErr(e))}</p>`; }
+    const q=document.getElementById("gAsk").value.trim(); if(!q) return; const out=document.getElementById("gAskOut");
+    const kbHtml=kbAnswerHtml(q); out.innerHTML=kbHtml+`<div class="ai-out" style="margin-top:10px" id="gAskAi">Claude 답변 준비 중…</div>`; const ai=document.getElementById("gAskAi");
+    try{ await cachedText("ask",q,`헬스 트레이너로서 다음 질문에 답하라. 한국어 존댓말, 마크다운 제목 없이 **굵게**만, 12줄 이내. 통증이 심하거나 지속되면 전문의 상담을 권하라.\n질문: ${q}`, t=>{ ai.innerHTML=md(t); }); }
+    catch(e){ ai.outerHTML=`<p class="small" style="color:var(--bad);margin-top:8px">${esc(aiErr(e))}${kbHtml?" · 위의 자체 DB 결과는 그대로 볼 수 있어요.":""}</p>`; }
   },
-  timerAdd(el){ timer.end+= +el.dataset.s*1000; tick(); },
-  timerStop(){ clearInterval(timer.iv); document.getElementById("timer").classList.remove("on"); }
+  timerAdd(el){ timer.end+= +el.dataset.s*1000; timer.total=Math.max(timer.total||0,(timer.end-Date.now())/1000); tick(); },
+  timerStop(){ stopTimer(); },
+  async askNotify(el){ const r=await askNotify(); el.textContent=r==="granted"?"알림 켜짐":r==="unsupported"?"이 브라우저는 알림 미지원":"알림이 차단돼 있어요"; }
 };
 export function readReq(){
   const g=id=>document.getElementById(id);
@@ -225,13 +279,27 @@ document.addEventListener("click",e=>{ const el=e.target.closest("[data-act]"); 
 document.addEventListener("change",e=>{
   if(e.target.id==="importIn"){ importFile(e.target); return; }
   const el=e.target; const k=el.dataset.chg; if(!k) return;
-  if(k==="set"){ const it=getItems(el.dataset.target)[+el.dataset.i]; it.sets[+el.dataset.k][el.dataset.f]=Math.max(0,+el.value||0); saveTarget(el.dataset.target); if(el.dataset.target==="log") render(); }
+  if(k==="set"){ const tg=el.dataset.target, i=+el.dataset.i, kk=+el.dataset.k, f=el.dataset.f; const it=getItems(tg)[i]; const old=el.dataset.orig!=null?+el.dataset.orig:it.sets[kk][f], v=Math.max(0,+el.value||0); it.sets[kk][f]=v; delete el.dataset.orig;
+    // 아직 안 끝낸 뒤 세트가 고치기 전 값과 같았다면 새 값을 따라간다 (1세트 무게를 올리면 2·3세트도)
+    for(let j=kk+1;j<it.sets.length;j++){ const s2=it.sets[j]; if(s2.done||+s2[f]!==+old) break; s2[f]=v; const inp=document.querySelector(`input[data-chg="set"][data-target="${tg}"][data-i="${i}"][data-k="${j}"][data-f="${f}"]`); if(inp) inp.value=v; }
+    saveTarget(tg);
+    // 화면 전체를 다시 그리면 방금 누른 다음 칸의 포커스(키보드)가 사라진다 → 바뀌는 부분만 갱신
+    if(tg==="log") refreshCard(i); }
   if(k==="rir"){ const s=day().workout.items[+el.dataset.i].sets[+el.dataset.k]; s.rir=el.value; markDirty(dayKey(ui.date)); }
+  if(k==="widget"){ (S.main.widgets=S.main.widgets||widgets())[el.dataset.w]=el.checked; markDirty("main"); render(); return; }
+  if(k==="step"){ const it=getItems(el.dataset.target)[+el.dataset.i]; (S.main.exStep=S.main.exStep||{})[it.exId||it.name]=+el.value; markDirty("main"); render(); }
+  if(k==="barKg"){ S.main.barKg=+el.value; markDirty("main"); render(); }
   if(k==="rest"){ getItems(el.dataset.target)[+el.dataset.i].rest=+el.value; saveTarget(el.dataset.target); }
   if(k==="dayTitle"){ S.main.plan[+el.dataset.i].title=el.value.trim()||"운동"; markDirty("main"); }
 });
+document.addEventListener("focusin",e=>{ const el=e.target; // 고치기 전 값을 기억해 둔다(칸을 벗어날 때 뒤 세트로 이어 줄지 판단)
+  if(el.dataset&&el.dataset.chg==="set"){ const it=getItems(el.dataset.target)[+el.dataset.i]; if(it&&it.sets[+el.dataset.k]) el.dataset.orig=it.sets[+el.dataset.k][el.dataset.f]; } });
 document.addEventListener("input",e=>{
-  const el=e.target; const k=el.dataset.inp; if(!k) return;
+  const el=e.target;
+  // 글자를 칠 때마다 저장한다: 칸을 벗어나기 전에 폰을 잠그거나 앱이 꺼져도 값이 남게
+  if(el.dataset&&el.dataset.chg==="set"&&el.value!==""){ const it=getItems(el.dataset.target)[+el.dataset.i]; if(it&&it.sets[+el.dataset.k]){ it.sets[+el.dataset.k][el.dataset.f]=Math.max(0,+el.value||0); saveTarget(el.dataset.target); } return; }
+  if(el.dataset&&el.dataset.chg==="exNote"){ const m=(S.main.exNotes=S.main.exNotes||{}); const v=el.value.slice(0,120); if(v.trim()) m[el.dataset.key]=v; else delete m[el.dataset.key]; markDirty("main"); return; }
+  const k=el.dataset.inp; if(!k) return;
   if(k==="foodQ"){ ui.sheet.q=el.value; document.getElementById("foodRes").innerHTML=foodResults(); }
   if(k==="exQ"){ ui.sheet.q=el.value; document.getElementById("exRes").innerHTML=exListHtml(); }
   if(k==="guideQ"){ ui.guideQ=el.value; const L=guideFilter(); document.getElementById("guideList").innerHTML=guideCards(L); document.getElementById("guideCount").textContent=`${L.length}개 운동 · 누르면 3D 동작과 타깃 근육을 볼 수 있어요`; }

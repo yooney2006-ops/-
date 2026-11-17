@@ -140,10 +140,14 @@ let SEQ=0;
 
 /* 근육 그룹별 색 → 정점 색 버퍼. musc: {근육키: 1(주동) | 2(보조)}, uni: 한쪽만 하는 운동이면 'L'/'R' */
 const TORSO=new Set(['chest','uchest','lats','traps','rhom','erect','abs','obl','glute','abd','hipflex']);
-function colors(body,musc,uni,pal){
+function colors(body,musc,uni,pal,heat){
   const C=k=>pal[k].map(v=>v/255); const out=new Float32Array(body.nv*4);
   const gc=body.groups.map(g=>{
     let lv=0; for(const k of g.keys){const m=musc[k]; if(!m) continue; if(uni&&g.side&&g.side!==uni&&!TORSO.has(k)) continue; lv=lv?Math.min(lv,m):m;}
+    if(heat){ // 히트맵: 아이보리 → 주황 → 빨강
+      let hv=0; for(const k of g.keys) if(heat[k]!=null) hv=Math.max(hv,heat[k]);
+      if(hv>0.02){ const a=C('muscle'),b=C('sec'),c=C('prim'); const t=hv<.5?hv*2:(hv-.5)*2, p=hv<.5?a:b, q=hv<.5?b:c; return [p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t,p[2]+(q[2]-p[2])*t,1]; }
+      const k=g.keys[0]; return [...C(k==='bone'?'bone':k==='tendon'?'tendon':'muscle'),0]; }
     if(lv===1) return [...C('prim'),1]; if(lv===2) return [...C('sec'),1];
     const k=g.keys[0]; return [...C(k==='bone'?'bone':k==='tendon'?'tendon':'muscle'),0];
   });

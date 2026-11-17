@@ -1,0 +1,402 @@
+[
+ {
+  "id": "protein_keep",
+  "topic": "단백질",
+  "label": "유지기 단백질 목표",
+  "value": "체중 kg당 1.6 g/일",
+  "applies_to": "건강한 성인, 저항 운동 병행",
+  "evidence": [
+   "morton18",
+   "nunes22",
+   "issn17prot"
+  ],
+  "note": "",
+  "used_by": "goals.ts calcTargets",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "protein_bulk",
+  "topic": "단백질",
+  "label": "증량기 단백질 목표",
+  "value": "체중 kg당 1.8 g/일",
+  "applies_to": "건강한 성인, 저항 운동 병행",
+  "evidence": [
+   "morton18",
+   "issn17prot",
+   "schoen18meal"
+  ],
+  "note": "1.6(효과가 평탄해지는 지점)과 2.2(문헌상 상한) 사이의 값. 1.8이라는 숫자 자체를 지목한 연구는 아니다.",
+  "used_by": "goals.ts calcTargets",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "protein_cut",
+  "topic": "단백질",
+  "label": "감량기 단백질 목표",
+  "value": "체중 kg당 2.2 g/일",
+  "applies_to": "열량 제한 중인 저항 운동 경험자",
+  "evidence": [
+   "helms14",
+   "issn17prot",
+   "schoen18meal"
+  ],
+  "note": "입장문·고찰의 감량기 권장은 제지방량 kg당 2.3–3.1 g. 앱은 체중 기준 2.2 g으로 보수적으로 잡았다. 연구 대상이 마른 선수라 일반 사용자에게는 높은 편일 수 있다.",
+  "used_by": "goals.ts calcTargets",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "kcal_cut",
+  "topic": "열량",
+  "label": "감량 시 적자",
+  "value": "유지 열량 − 450 kcal",
+  "applies_to": "저항 운동을 하며 감량하는 성인",
+  "evidence": [
+   "murphy22",
+   "garthe11"
+  ],
+  "note": "500 kcal보다 큰 적자에서 제지방 증가가 사라졌다는 메타회귀에 맞춰 그보다 작게 잡았다.",
+  "used_by": "goals.ts calcTargets",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "kcal_bulk",
+  "topic": "열량",
+  "label": "증량 시 잉여",
+  "value": "유지 열량 + 300 kcal",
+  "applies_to": "",
+  "evidence": [
+   "helms23",
+   "slater19"
+  ],
+  "note": "잉여가 클수록 근육보다 체지방이 더 늘었다는 무작위 연구에 따라 작은 잉여를 쓴다. '300'이라는 숫자 자체를 지목한 연구는 확인하지 못했다(앱의 선택).",
+  "used_by": "goals.ts calcTargets",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "bmr",
+  "topic": "열량",
+  "label": "기초대사량 추정식",
+  "value": "Mifflin-St Jeor",
+  "applies_to": "건강한 성인",
+  "evidence": [
+   "mifflin90"
+  ],
+  "note": "",
+  "used_by": "goals.ts calcTargets",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "vol_week",
+  "topic": "볼륨",
+  "label": "부위당 주간 세트",
+  "value": "10–20세트",
+  "applies_to": "근비대 목표, 훈련 경험자",
+  "evidence": [
+   "acsm26",
+   "schoen17vol",
+   "bazvalle22",
+   "pelland25"
+  ],
+  "note": "하한 10은 ACSM 2026·Schoenfeld 2017, 범위 12–20은 Baz-Valle 2022(훈련 경험 있는 젊은 남성 대상)에 근거. 20세트 초과의 추가 이득은 부위에 따라 엇갈린다.",
+  "used_by": "training.ts VOL_RANGE",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "vol_week_beg",
+  "topic": "볼륨",
+  "label": "초보자 부위당 주간 세트",
+  "value": "6–12세트",
+  "applies_to": "초보자",
+  "evidence": [],
+  "note": "초보자용 주간 범위(6–12)를 직접 뒷받침하는 확인된 근거가 없다. 관련: 비훈련자도 한 번에 부위당 4세트에서 근력 향상이 가장 컸다(Rhea 2003, 근력 기준).",
+  "used_by": "training.ts VOL_RANGE",
+  "status": "미검증",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "vol_fractional",
+  "topic": "볼륨",
+  "label": "보조근 세트 계산",
+  "value": "주동근 1세트 = 1, 보조근 = 0.5",
+  "applies_to": "",
+  "evidence": [
+   "pelland25"
+  ],
+  "note": "",
+  "used_by": "training.ts groupWeights",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "vol_session",
+  "topic": "볼륨",
+  "label": "한 세션 부위당 세트 상한",
+  "value": "약 11세트",
+  "applies_to": "",
+  "evidence": [
+   "pelland24pre"
+  ],
+  "note": "프리프린트의 서지만 확인했고 '11세트' 수치는 확인하지 못했다.",
+  "used_by": "training.ts planFeedback",
+  "status": "미검증",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "freq",
+  "topic": "빈도",
+  "label": "부위당 주간 빈도",
+  "value": "주 2회 이상",
+  "applies_to": "",
+  "evidence": [
+   "schoen16freq",
+   "schoen19freq",
+   "grgic18freq",
+   "acsm26",
+   "garber11"
+  ],
+  "note": "연구가 엇갈린다: 2016년 메타분석은 주 2회가 1회보다 유리, 2019년 메타분석은 볼륨이 같으면 차이 없음. 앱은 볼륨을 나눠 담기 쉬운 주 2회 이상을 권한다.",
+  "used_by": "training.ts planFeedback",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "load_reps",
+  "topic": "강도",
+  "label": "근비대 반복수 범위",
+  "value": "6–12회 중심, 넓은 범위 허용",
+  "applies_to": "건강한 성인",
+  "evidence": [
+   "acsm09",
+   "schoen17load",
+   "schoen21rep",
+   "acsm26"
+  ],
+  "note": "실패 가까이 하면 가벼운 부하도 근비대는 비슷하다. 최대 근력이 목표면 무거운 부하(80% 1RM 이상)가 유리하다.",
+  "used_by": "training.ts makeTemplate",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "rir",
+  "topic": "강도",
+  "label": "목표 RIR",
+  "value": "복합 운동 1–2, 고립 운동 0–1",
+  "applies_to": "",
+  "evidence": [
+   "robinson24",
+   "refalo23",
+   "grgic22fail"
+  ],
+  "note": "연구가 엇갈린다: 실패에 가까울수록 근비대가 컸다는 메타회귀와, 실패 훈련이 더 낫다는 근거가 없다는 메타분석이 함께 있다. 구체적 RIR 숫자는 앱의 선택이다.",
+  "used_by": "training.ts makeTemplate",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "rest",
+  "topic": "휴식",
+  "label": "세트 간 휴식",
+  "value": "복합 운동 150초, 고립 운동 90초",
+  "applies_to": "",
+  "evidence": [
+   "singer24",
+   "grgic18rest",
+   "acsm09"
+  ],
+  "note": "근비대는 60초 초과에서 작은 이점, 90초 초과는 차이 불분명. 근력은 훈련 경험자에서 2분 초과가 유리.",
+  "used_by": "exercises.js rest",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "overload",
+  "topic": "점진적 과부하",
+  "label": "무게 올리는 기준",
+  "value": "목표 횟수를 모두 채우면 다음에 +2.5kg(하체·데드리프트 +5kg)",
+  "applies_to": "",
+  "evidence": [
+   "acsm09",
+   "plotkin22"
+  ],
+  "note": "ACSM 2009는 목표보다 1–2회 더 할 수 있을 때 부하를 2–10% 올리라고 권한다. kg 단위 증가폭은 원판 단위에 맞춘 앱의 선택이다.",
+  "used_by": "training.ts suggestNext",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "recovery",
+  "topic": "회복",
+  "label": "근육 회복 시간",
+  "value": "기본 48시간, RIR 0이면 +24시간, RIR 1이면 +12시간, 큰 근육 +12시간",
+  "applies_to": "",
+  "evidence": [
+   "moran17",
+   "pareja19"
+  ],
+  "note": "실패 훈련이 회복을 24–48시간 늦춘다는 결과는 훈련 경험 있는 남성 10명 연구에서 나왔다. 기본 48시간과 큰 근육 +12시간은 확인된 근거가 없는 앱의 추정이다.",
+  "used_by": "training.ts fatigueAt",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "deload",
+  "topic": "회복",
+  "label": "디로드",
+  "value": "필요할 때 선택적으로",
+  "applies_to": "",
+  "evidence": [
+   "bell23",
+   "coleman24",
+   "deload26"
+  ],
+  "note": "연구가 적고 엇갈린다: 훈련 경험자에서 1주 휴식은 근비대에는 차이가 없고 근력 향상은 작았으며, 비훈련자에서는 저해가 없었다. 앱은 주기적 디로드를 강제하지 않는다.",
+  "used_by": "(규칙만, 기능 없음)",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "e1rm",
+  "topic": "1RM 추정",
+  "label": "추정 1RM 공식",
+  "value": "Epley: 무게 × (1 + 횟수/30)",
+  "applies_to": "",
+  "evidence": [],
+  "note": "Epley 공식의 원출처를 확인하지 못했다. 관련 확인 근거: 10회 이하 기록으로 추정해야 정확하다(Reynolds 2006).",
+  "used_by": "training.ts e1rm",
+  "status": "미검증",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "e1rm_reps",
+  "topic": "1RM 추정",
+  "label": "추정에 쓰는 반복수",
+  "value": "10회 이하일 때 신뢰",
+  "applies_to": "",
+  "evidence": [
+   "reynolds06"
+  ],
+  "note": "",
+  "used_by": "training.ts e1rm",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "stretch",
+  "topic": "운동 선택",
+  "label": "늘어난 자세 강조(스트레치) 표시",
+  "value": "앉은 레그 컬, 오버헤드 삼두 등",
+  "applies_to": "",
+  "evidence": [
+   "maeo21",
+   "maeo23"
+  ],
+  "note": "개별 무작위 연구 2건. 다른 운동의 '중간' 등급 표시는 확인된 근거가 없는 앱의 판단이다.",
+  "used_by": "exercises.js STRETCH",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "rom",
+  "topic": "운동 선택",
+  "label": "가동범위",
+  "value": "가능한 전체 가동범위로",
+  "applies_to": "",
+  "evidence": [
+   "pallares21",
+   "acsm26"
+  ],
+  "note": "부분 가동범위(늘어난 구간) 훈련에 관한 Wolf 2023 메타분석은 확인하지 못했다.",
+  "used_by": "exercises.js tips",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "sets_per_ex",
+  "topic": "볼륨",
+  "label": "운동당 세트 수",
+  "value": "2–4세트",
+  "applies_to": "",
+  "evidence": [
+   "krieger10",
+   "rhea03",
+   "acsm26"
+  ],
+  "note": "1세트보다 여러 세트가 유리하다는 점은 일관된다. 2–3세트와 4–6세트의 근비대 차이는 유의하지 않았다.",
+  "used_by": "training.ts makeTemplate",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "machine_free",
+  "topic": "운동 선택",
+  "label": "머신 ↔ 프리웨이트 대체",
+  "value": "근비대 목적이면 서로 대체 가능",
+  "applies_to": "",
+  "evidence": [
+   "haugen23"
+  ],
+  "note": "",
+  "used_by": "training.ts MACHINE_PREF / FREE_PREF",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "met",
+  "topic": "유산소",
+  "label": "운동별 MET",
+  "value": "(비워 둠)",
+  "applies_to": "",
+  "evidence": [],
+  "note": "2024 Compendium의 재사용 조건을 확인하지 못해 수치를 싣지 않았다.",
+  "used_by": "(없음)",
+  "status": "미검증",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ },
+ {
+  "id": "medical",
+  "topic": "안전",
+  "label": "질병·부상·약물",
+  "value": "권장값 없음 — 의사·전문가 상담 안내",
+  "applies_to": "",
+  "evidence": [
+   "garber11",
+   "fragala19"
+  ],
+  "note": "통증이 심하거나 지속되면, 또는 질환·약물 복용 중이면 운동·식단 변경 전에 전문가와 상담하도록 안내한다.",
+  "used_by": "views.ts",
+  "status": "근거 연결됨",
+  "source": "자체 규칙",
+  "version": "2026.11.16"
+ }
+]

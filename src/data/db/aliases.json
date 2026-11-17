@@ -1,0 +1,17 @@
+{
+ "_meta": {"source": "자체 작성 (외래어 표기·흔한 줄임말)", "license": "프로젝트 소유", "version": "2026.11.16", "status": "검증됨(표기 대응만, 수치 없음)"},
+ "glossary": {"바벨":"barbell","덤벨":"dumbbell","케틀벨":"kettlebell","케이블":"cable","머신":"machine","스미스":"smith","벤치프레스":"bench press","프레스":"press","인클라인":"incline","디클라인":"decline","플라이":"fly","푸시업":"push up","딥스":"dips","딥":"dip","크로스오버":"crossover","체스트":"chest","펙덱":"pec deck","데드리프트":"deadlift","컨벤셔널":"conventional","스모":"sumo","풀업":"pull up","친업":"chin up","어시스트":"assisted","랫":"lat","풀다운":"pulldown","클로즈그립":"close grip","스트레이트":"straight","암":"arm","로우":"row","T바":"t-bar","원암":"one arm","시티드":"seated","와이드":"wide","그립":"grip","풀오버":"pullover","백":"back","익스텐션":"extension","슈러그":"shrug","백스쿼트":"back squat","스쿼트":"squat","프론트":"front","고블릿":"goblet","핵":"hack","펜듈럼":"pendulum","벨트":"belt","레그프레스":"leg press","루마니안":"romanian","굿모닝":"good morning","런지":"lunge","불가리안":"bulgarian","스플릿":"split","스텝업":"step up","힙":"hip","쓰러스트":"thrust","글루트":"glute","브릿지":"bridge","킥백":"kickback","레그":"leg","레그컬":"leg curl","라잉":"lying","어브덕션":"abduction","어덕션":"adduction","스탠딩":"standing","카프":"calf","레이즈":"raise","스윙":"swing","오버헤드":"overhead","숄더":"shoulder","아놀드":"arnold","사이드":"side","레터럴":"lateral","리어":"rear","델트":"delt","리버스":"reverse","페이스":"face","풀":"pull","업라이트":"upright","컬":"curl","해머":"hammer","프리처":"preacher","컨센트레이션":"concentration","바이셉":"biceps","트라이셉스":"triceps","푸시다운":"pushdown","로프":"rope","플랭크":"plank","크런치":"crunch","행잉":"hanging","레그레이즈":"leg raise","캡틴스":"captain's","체어":"chair","앱":"ab","토르소":"torso","로테이션":"rotation","롤아웃":"rollout","러닝":"running","트레드밀":"treadmill","사이클":"cycle bike","스텝밀":"stepmill","로잉":"rowing","일립티컬":"elliptical","걷기":"walk"},
+ "exercise": {
+  "bench":["벤치","벤프","bp"],"squat":["스쾃","백스쿼트","스쿼트"],"deadlift":["데드","데드리프트","컨벤"],"ohp":["밀리터리 프레스","ohp","숄더프레스"],"rdl":["rdl","루마니안 데드"],
+  "pullup":["턱걸이","풀업"],"chinup":["친업 턱걸이"],"lat_pd":["렛풀다운","랫풀","렛풀"],"lateral":["사레레","사이드 레이즈","측면 레이즈","레터럴"],"pushup":["팔굽혀펴기","푸쉬업"],
+  "db_curl":["아령 컬","이두 컬"],"leg_curl":["레그컬","햄스트링 컬"],"seated_curl":["시티드 레그컬"],"leg_ext":["레그 익스텐션","레그익스"],"leg_press":["레그 프레스"],
+  "hip_thrust":["힙쓰러스트","힙 스러스트"],"bulgarian":["불가리안","bss"],"face_pull":["페이스풀"],"skull":["스컬 크러셔","스컬크러셔"],"triceps_pd":["푸쉬다운","삼두 푸시다운"],
+  "stair":["천국의 계단","계단"],"run":["달리기","러닝머신"],"bike":["자전거","사이클"],"rower":["로잉","조정"],"plank":["플랭크"],"crunch":["윗몸일으키기"],"hanging_lr":["레그레이즈"],
+  "db_row":["덤벨 로우","원암 로우"],"bb_row":["벤트오버 로우"],"dips":["평행봉"],"calf_raise":["카프레이즈","종아리"],"goblet":["고블렛"],"front_squat":["프론트스쿼트"],"good_morning":["굿모닝"],"kb_swing":["케벨 스윙"]
+ },
+ "food": {
+  "계란(삶은)":["달걀","삶은 계란","egg"],"계란 흰자":["달걀 흰자","흰자"],"닭가슴살(삶은)":["닭가슴살","닭가","chicken breast"],"흰쌀밥":["쌀밥","공기밥","밥","rice"],"현미밥":["현미"],"고구마":["sweet potato"],"바나나":["banana"],
+  "프로틴 쉐이크(웨이)":["프로틴","단백질 쉐이크","단백질 보충제","웨이","protein shake"],"그릭요거트(무가당)":["그릭요거트","요거트","greek yogurt"],"우유":["milk"],"오트밀":["귀리","oatmeal"],"아몬드":["almond"],
+  "참치캔(라이트)":["참치","참치캔"],"식빵":["빵","토스트"],"아메리카노":["커피","아아"],"라면":["봉지라면"],"삼겹살 구이":["삼겹살"],"돼지 목살 구이":["목살"],"후라이드 치킨":["치킨"],"채소 샐러드(드레싱 제외)":["샐러드"],"소고기 등심 구이":["소고기","등심"],"연어":["salmon"],"두부":["tofu"],"사과":["apple"],"땅콩버터":["피넛버터","peanut butter"]
+ }
+}

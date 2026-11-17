@@ -1,0 +1,5 @@
+{
+ "_설명": "식약처 식품영양성분 DB 파일(CSV)의 열 이름을 적는다. 열 이름을 확인하지 못해 비워 두었다. 값이 '100g 기준'이 아니면 base_grams 열로 환산한다.",
+ "encoding": "utf-8-sig",
+ "name": "", "base_grams": "", "kcal": "", "carb": "", "protein": "", "fat": "", "sugar": "", "sodium": "", "brand": "", "category": "", "code": ""
+}

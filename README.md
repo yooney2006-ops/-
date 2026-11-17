@@ -17,6 +17,7 @@ npm run preview      # 빌드 결과 미리보기
 ```bash
 npm test                       # 물리·바벨 관통 회귀 검사, 운동 DB, 저장·백업 (vitest)
 npm run build && npm run test:e2e   # 실제 브라우저로 탭·3D·저장·백업·오프라인 확인
+node tests/e2e/workout-flow.mjs     # 운동 중 흐름(세트 수정·타이머 복원·삭제 되돌리기·루틴 불러오기)
 npm run render -- '{"ids":["bench"],"s":[[0,90],[0.5,90],[1,90],[0],[1]]}' out.png   # 동작 렌더 → 눈으로 확인
 node tests/physics/physcheck.mjs [id,id]   # 물리 검사 상세 출력 (알려진 오탐 4건: goblet, rower, bulgarian, stepup)
 node tests/physics/barcheck.mjs            # 바벨 관통 상세 출력 (0건이어야 함)
